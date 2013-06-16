@@ -18,25 +18,25 @@ class DemoSpider(BaseSpider):
 		items = []
 		for backer in backers:
 			item = Supporter()
+			# div.supporters:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div:nth-child(2) > a:nth-child(1)
 			supporter_name = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()").extract()
 			supporter_url = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/@href").extract()
-			supporter_ico = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/div[@class='icon-sun-ms']/a/text()").extract()
-			supporter_all= backer.select(".//div[@class='supportersmeta']/text()").extract()
-			supporter_time = backer.select(".//div[@class='supportersmeta']/text()[2]").extract()[0:-4]
-			supporter_amount = backer.select(".//div[@class='supportersmeta']/text()[3]").extract()
-			supporter_total_support = backer.select(".//div[@class='supportersmeta']/text()[4]").extract()
+			supporter_icon = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/div[@class='icon-sun-ms']/a/text()").extract()
+			supporter_total_support_proj= backer.select(".//div[@class='supportersmeta']/text()[4]").extract()
+			supporter_support_time = backer.select(".//div[@class='supportersmeta']/text()[2]").extract()
+			supporter_support_amount = backer.select(".//div[@class='supportersmeta']/text()[3]").extract()
 			print "supporter name", supporter_name
 			print "supporter url", supporter_url
-			print "supporter icon level", supporter_ico
-			print "supporter_all", supporter_all
-			print "supporter time", supporter_time
-			print "supporter total support", supporter_total_support
+			print "supporter icon level ", supporter_icon
+			print "supporter_total_support_proj ", supporter_total_support_proj
+			print "supporter_support_time ", supporter_support_time
+			print "supporter total support", supporter_support_amount
 			item['supporter_name'] = supporter_name
-			item['supporter_url'] = supporter_url
-			item['supporter_ico'] = supporter_ico
-			item['supporter_time']= supporter_time
-			item['supporter_amount'] = supporter_amount
-			item['supporter_total_support'] = supporter_total_support
+			item['supporter_url'] = item.clean_supporter_url(supporter_url[0])
+			item['supporter_icon'] = item.clean_supporter_icon(supporter_icon[0])
+			item['supporter_support_time']= item.clean_supporter_support_time(supporter_support_time[0])
+			item['supporter_support_amount'] = supporter_support_amount
+			item['supporter_total_support_proj'] = item.clean_supporter_total_support_proj(supporter_total_support_proj[0])
 			items.append(item)
 		return items
 		

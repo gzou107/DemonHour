@@ -4,14 +4,44 @@
 # http://doc.scrapy.org/topics/items.html
 
 from scrapy.item import Item, Field
+import re
 
 class Supporter(Item):
 	supporter_name = Field()
 	supporter_url = Field()
-	supporter_ico = Field()
-	supporter_time = Field()
-	supporter_amount = Field()
-	supporter_total_support = Field()
+	supporter_icon = Field()
+	supporter_support_time = Field()
+	supporter_support_amount = Field()
+	supporter_total_support_proj = Field()
+	
+	def clean_supporter_url(self, url):
+		"""
+		Return complete url
+		"""
+		return "http://www.demohour.com" + url
+	
+	def clean_supporter_icon(self, icon):
+		"""
+		clean icon level
+		support adge level: level is 1 -- > 1
+		"""
+		return icon[-1:]
+		
+	def clean_supporter_support_time(self, support_time):
+		"""
+		clean the support support time, remove the trailing 4 chinese characters and first \n
+		"""
+		time = support_time[1:-5]
+		return time
+	
+	def clean_supporter_total_support_proj(self, total_support_proj_cnt):
+		"""
+		clean the supporter total support proj, keep only the number of total support projs
+		[u'\nTA\u603b\u5171\u652f\u6301\u4e862\u4e2a\u9879\u76ee'] --> u4e86(2)
+		"""
+		count = re.search('[0-9]+', total_support_proj_cnt);
+		return count.group(0)
+		
 	
 class RewardOption(Item):
 	# section of proj reward options
