@@ -3,18 +3,58 @@ from scrapy.selector import HtmlXPathSelector
 from DemoHour.items import DemohourItem
 from DemoHour.items import RewardOption
 from DemoHour.items import Supporter
+from scrapy.http.request import Request
 
-class DemoSpider(BaseSpider):
+
+from scrapy.contrib.spiders import CrawlSpider, Rule
+from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
+
+class DemoSpider(CrawlSpider):
 	name = 'DemoHourSpider'
 	domain = ['www.demohour.com']
 	start_urls = ['http://www.demohour.com/projects/318262/backers']
 	# , 'http://www.demohour.com/projects/317769']
+	rules = (	
+		# Extract link matching 'backers?page= and parse them with the spider's method, parse_one_page
+		Rule (SgmlLinkExtractor(allow=('backers?page='), restrict_xpaths=('')), callback='parse_one_page', follow = True),
+		
+		)
 	
 	def parse(self, response):
+		self.log('hi, this is an item page! %s' %response.url)
+		
+		if response.meta['depth'] > 5:
+			self.log('reach depth of 5 when at page %s' % response.url)
+			
+		hxs = HtmlXPathSelector(response)
+
+		# firstly get the total backer count so that we know the pagination number
+		count_str = hxs.select("//a[@class='ui-tab-current']/span[@id='backer_count']/text()").extract()
+		print "total supporter count: ", count_str
+		count = int(count_str[0])
+		backer_per_page = 40
+		
+		current_page = hxs.select("//div[@class='ui-pagination']/ul/li[@class = 'ui-pagination-current']/a/@href").extract()
+		for i in range(1, count/backer_per_page + 2):
+			page_url_base = current_page[0].split('?')
+			page_url_prefix = page_url_base[0]
+			page_url = page_url_prefix + '?' + 'page='+ str(i)
+			yield Request(page_url, self.parse_one_page)
+		
+		"""
+		visited_page = set()
+		for page in pages:
+			if not page in visited_page:
+				visited_page.add(page)
+				yield Request(page, self.parse_one_page)
+		"""
+		
+	def parse_one_page(self, response):
 		hxs = HtmlXPathSelector(response)
 		# titles = hxs.select("//span[@class='pl']")
-		backers = hxs.select("//div[@class='projects-backers-left']/div[@class='supporters']")
 		
+		
+		backers = hxs.select("//div[@class='projects-backers-left']/div[@class='supporters']")
 		items = []
 		for backer in backers:
 			item = Supporter()
@@ -38,7 +78,9 @@ class DemoSpider(BaseSpider):
 			item['supporter_support_amount'] = supporter_support_amount
 			item['supporter_total_support_proj'] = item.clean_supporter_total_support_proj(supporter_total_support_proj[0])
 			items.append(item)
-		return items
+		for item in items:
+			yield item
+		# return items
 		
 		"""
 		projs_time = hxs.select("//div[@class='project-by-last-time']")
