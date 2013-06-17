@@ -2,47 +2,100 @@ from scrapy.spider import BaseSpider
 from scrapy.selector import HtmlXPathSelector
 from DemoHour.items import DemohourItem
 from DemoHour.items import RewardOption
-from DemoHour.items import Supporter
+from DemoHour.items import Supporter, projs_sidebar_Funding
 from scrapy.http.request import Request
 
 
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 from scrapy.contrib.loader import XPathItemLoader
+import re
 
 class DemoSpider(CrawlSpider):
 	name = 'DemoHourSpider'
 	domain = ['demohour.com']
 	start_urls = [
-	'http://www.demohour.com/projects/318262/backers'
+	'http://www.demohour.com/projects/318262'
 	]
 	# , 'http://www.demohour.com/projects/317769']
 	# SgmlLinkExtractor(allow=('demohour.com/projects/[0-9]+/backers'))
-	# 318262
-	extractor = SgmlLinkExtractor(allow=('demohour.com/projects/318262/backers'))
+	# 318262 320144
+	# backers_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers',), deny=('page=1$',))
+	# 			supporter_name = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()").extract()
+	backers_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers?',), deny=('page=1$',) )
+	# proj_sidebar_funding = SgmlLinkExtractor( allow=('/projects/320144/posts$',), )
 	
 	rules = (	
 		# Extract link matching 'backers?page= and parse them with the spider's method, parse_one_page
 		# allow=('backers?page=')
-		Rule(extractor, callback='parse_links', follow = True),
-		
+		Rule(backers_extractor, callback='parse_backers_links', follow = True),
+		# Rule(proj_sidebar_funding, callback = 'parse_sidebar_funding',follow = False),
+		# Extract link matching 
 		)
 	visited_url = set()
 	
-	def parse_links(self, response):
+	def parse_backers_links(self, response):
 		hxs = HtmlXPathSelector(response)
+		
+		current_page = hxs.select("//div[@class='ui-pagination-current']/ul/li/a/@href")
+		
+		if not not current_page:
+			yield Request(current_page[0], self.parse_one_page)
+		"""	
 		links = hxs.select("//div[@class='ui-pagination']/ul/li/a/@href")
-		visited_url = set()
 		for link in links:
 			link_url = link.extract()
-			# if(link_url not in visited_url):
-			#	visited_url.add(link_url)
 			self.log("I am in link %s" %link_url)
-			yield Request(link_url, self.parse_one_page)
-		
+	
+			if re.search('page=1$', link_url):
+				self.log('match rule: %s' %link_url)
+				print link_url
+			else:
+				yield Request(link_url, self.parse_one_page)
+		"""
 		for item in self.parse_one_page(response):
 			yield item
 		
+		
+	
+	
+	def parse_sidebar_funding(self, response):
+		"""
+		This will parse the side bar and return the info for side bar funding
+		"""
+		hxs = HtmlXPathSelector(response)
+		
+		projs_sidebar_funding = hxs.select("//div[@class='sidebar-funding']")
+		
+		item = projs_sidebar_Funding()
+		for p in projs_sidebar_funding:
+			projs_sidebar_money_raised_num_t = p.select(".//div[@class='sidebar-money-raised-num-t']").select(".//b/text()").extract()
+			print projs_sidebar_money_raised_num_t
+			item['projs_sidebar_money_raised_num_t'] = projs_sidebar_money_raised_num_t
+			
+			projs_sidebar_money_raised_num = p.select(".//div[@class='sidebar-money-raised-num']").select(".//b/text()").extract()
+			print projs_sidebar_money_raised_num
+			item['projs_sidebar_money_raised_num'] = projs_sidebar_money_raised_num
+			
+			projs_sidebar_percentage_progress_span = p.select(".//span[@class='sidebar-percentage-progress-span']/text()").extract()
+			print projs_sidebar_percentage_progress_span
+			item['projs_sidebar_percentage_progress_span'] = projs_sidebar_percentage_progress_span
+			
+			# this is how many people support this proj
+			projs_sidebar_number_days_1 = p.select(".//div[@class='sidebar-number-days-l']/b/b/text()").extract()
+			print "support num:", projs_sidebar_number_days_1
+			item['projs_sidebar_number_days_1'] = projs_sidebar_number_days_1
+			
+			# this is how many people view this proj
+			projs_sidebar_number_days_m = p.select(".//div[@class='sidebar-number-days-m']/b/b/text()").extract()
+			print "people view ", projs_sidebar_number_days_m
+			item['projs_sidebar_number_days_m'] = projs_sidebar_number_days_m
+			
+			# this is how many days left
+			projs_sidebar_number_days_r = p.select(".//div[@class='sidebar-number-days-r']/b/b/text()").extract()
+			print "days left ", projs_sidebar_number_days_r		
+			item['projs_sidebar_number_days_r'] = projs_sidebar_number_days_r	
+		yield item
 	"""
 	def parse(self, response):
 		self.log('hi, this is an item page! %s' %response.url)
@@ -74,9 +127,10 @@ class DemoSpider(CrawlSpider):
 		
 	"""	
 	def parse_one_page(self, response):
+		
 		hxs = HtmlXPathSelector(response)
 		# titles = hxs.select("//span[@class='pl']")
-
+		# avoid double parse here???
 		backers = hxs.select("//div[@class='projects-backers-left']/div[@class='supporters']")
 		items = []
 		
@@ -103,12 +157,12 @@ class DemoSpider(CrawlSpider):
 			supporter_total_support_proj= backer.select(".//div[@class='supportersmeta']/text()[4]").extract()
 			supporter_support_time = backer.select(".//div[@class='supportersmeta']/text()[2]").extract()
 			supporter_support_amount = backer.select(".//div[@class='supportersmeta']/text()[3]").extract()
-			print "supporter name", supporter_name
-			print "supporter url", supporter_url
-			print "supporter icon level ", supporter_icon
-			print "supporter_total_support_proj ", supporter_total_support_proj
-			print "supporter_support_time ", supporter_support_time
-			print "supporter total support", supporter_support_amount
+			#print "supporter name", supporter_name
+			#print "supporter url", supporter_url
+			#print "supporter icon level ", supporter_icon
+			#print "supporter_total_support_proj ", supporter_total_support_proj
+			#print "supporter_support_time ", supporter_support_time
+			#print "supporter total support", supporter_support_amount
 			item['supporter_name'] = supporter_name
 			item['supporter_url'] = item.clean_supporter_url(supporter_url[0])
 			item['supporter_icon'] = item.clean_supporter_icon(supporter_icon[0])

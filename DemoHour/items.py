@@ -58,6 +58,15 @@ class RewardOption(Item):
 	projs_reward_support_amount = Field()
 	projs_reward_supporter_count = Field()
 	projs_reward_supporter_limit = Field()
+
+class projs_sidebar_Funding(Item):
+	#section of proj sidebar funding
+	projs_sidebar_money_raised_num_t = Field()
+	projs_sidebar_money_raised_num = Field()
+	projs_sidebar_percentage_progress_span =Field()
+	projs_sidebar_number_days_1 = Field()
+	projs_sidebar_number_days_m = Field()
+	projs_sidebar_number_days_r = Field()
 	
 class DemohourItem(Item):
     # define the fields for your item here like:
