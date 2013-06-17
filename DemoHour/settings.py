@@ -16,4 +16,5 @@ NEWSPIDER_MODULE = 'DemoHour.spiders'
 ITEM_PIPELINES = [
 	'DemoHour.pipelines.DemohourPipeline',
     # 'DemoHour.pipelines.DuplicatesPipeline',
+	# 'DemoHour.pipelines.MySQLStorePipeline',
 ]
