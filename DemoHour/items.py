@@ -6,6 +6,10 @@
 from scrapy.item import Item, Field
 import re
 
+
+from scrapy.contrib.loader import ItemLoader
+from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
+
 class Supporter(Item):
 	supporter_name = Field()
 	supporter_url = Field()
@@ -41,8 +45,14 @@ class Supporter(Item):
 		"""
 		count = re.search('[0-9]+', total_support_proj_cnt);
 		return count.group(0)
-		
-	
+
+"""
+class SupporterLoader(ItemLoader):
+	supporter_url = MapCompose(clean_supporter_url, ItemLoader.supporter_url)
+	supporter_icon = MapCompose(clean_supporter_icon, ItemLoader.supporter_icon)
+	supporter_support_time = MapCompose(clean_supporter_support_time, ItemLoader.supporter_support_time)
+	supporter_total_support_proj = MapCompose(clean_supporter_total_support_proj, ItemLoader.supporter_total_support_proj)	
+"""
 class RewardOption(Item):
 	# section of proj reward options
 	projs_reward_support_amount = Field()

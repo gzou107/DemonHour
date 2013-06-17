@@ -8,18 +8,42 @@ from scrapy.http.request import Request
 
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
+from scrapy.contrib.loader import XPathItemLoader
 
 class DemoSpider(CrawlSpider):
 	name = 'DemoHourSpider'
-	domain = ['www.demohour.com']
-	start_urls = ['http://www.demohour.com/projects/318262/backers']
+	domain = ['demohour.com']
+	start_urls = [
+	'http://www.demohour.com/projects/318262/backers'
+	]
 	# , 'http://www.demohour.com/projects/317769']
+	# SgmlLinkExtractor(allow=('demohour.com/projects/[0-9]+/backers'))
+	# 318262
+	extractor = SgmlLinkExtractor(allow=('demohour.com/projects/318262/backers'))
+	
 	rules = (	
 		# Extract link matching 'backers?page= and parse them with the spider's method, parse_one_page
-		Rule (SgmlLinkExtractor(allow=('backers?page='), restrict_xpaths=('')), callback='parse_one_page', follow = True),
+		# allow=('backers?page=')
+		Rule(extractor, callback='parse_links', follow = True),
 		
 		)
+	visited_url = set()
 	
+	def parse_links(self, response):
+		hxs = HtmlXPathSelector(response)
+		links = hxs.select("//div[@class='ui-pagination']/ul/li/a/@href")
+		visited_url = set()
+		for link in links:
+			link_url = link.extract()
+			# if(link_url not in visited_url):
+			#	visited_url.add(link_url)
+			self.log("I am in link %s" %link_url)
+			yield Request(link_url, self.parse_one_page)
+		
+		for item in self.parse_one_page(response):
+			yield item
+		
+	"""
 	def parse(self, response):
 		self.log('hi, this is an item page! %s' %response.url)
 		
@@ -41,23 +65,37 @@ class DemoSpider(CrawlSpider):
 			page_url = page_url_prefix + '?' + 'page='+ str(i)
 			yield Request(page_url, self.parse_one_page)
 		
-		"""
+		
 		visited_page = set()
 		for page in pages:
 			if not page in visited_page:
 				visited_page.add(page)
 				yield Request(page, self.parse_one_page)
-		"""
 		
+	"""	
 	def parse_one_page(self, response):
 		hxs = HtmlXPathSelector(response)
 		# titles = hxs.select("//span[@class='pl']")
-		
-		
+
 		backers = hxs.select("//div[@class='projects-backers-left']/div[@class='supporters']")
 		items = []
+		
+		loader = XPathItemLoader(item = Supporter(), response = response)
+		
+		"""
 		for backer in backers:
-			item = Supporter()
+			loader.add_xpath('supporter_name', ".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()")
+			loader.add_xpath('supporter_url', ".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/@href")
+			loader.add_xpath('supporter_icon',".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/div[@class='icon-sun-ms']/a/text()")
+			loader.add_xpath('supporter_support_time', ".//div[@class='supportersmeta']/text()[2]")
+			loader.add_xpath('supporter_total_support_proj', ".//div[@class='supportersmeta']/text()[4]")
+			loader.add_xpath('supporter_support_amount', ".//div[@class='supportersmeta']/text()[3]")
+			items.append(loader.load_item())
+		return items
+		"""
+		
+		for backer in backers:
+			item = Supporter()			
 			# div.supporters:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div:nth-child(2) > a:nth-child(1)
 			supporter_name = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()").extract()
 			supporter_url = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/@href").extract()
@@ -78,10 +116,11 @@ class DemoSpider(CrawlSpider):
 			item['supporter_support_amount'] = supporter_support_amount
 			item['supporter_total_support_proj'] = item.clean_supporter_total_support_proj(supporter_total_support_proj[0])
 			items.append(item)
+
 		for item in items:
 			yield item
-		# return items
 		
+		# return items
 		"""
 		projs_time = hxs.select("//div[@class='project-by-last-time']")
 		
