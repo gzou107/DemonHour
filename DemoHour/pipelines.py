@@ -29,10 +29,10 @@ class DuplicatesPipeline(object):
 			
 class MySQLStorePipeline(object):
 	def __init__(self):
-	"""
-	hard code db connection string
-	"""
-	self.dbpool = adbapi.ConnectionPool('MySQLdb',
+		"""
+		hard code db connection string
+		"""
+		self.dbpool = adbapi.ConnectionPool('MySQLdb',
 			db = 'sql56',
 			user = 'root',
 			passws = '',
@@ -66,6 +66,7 @@ class MySQLStorePipeline(object):
 				item['supporter_icon'][0],
 				item['supporter_support_time'][0],
 				item['supporter_total_support_proj'][0]
+				)
 				)
 			log.msg("Item stored in db: %s" %item, level = log.DEBUG)
 			
