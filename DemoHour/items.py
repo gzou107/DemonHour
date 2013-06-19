@@ -76,7 +76,7 @@ class DemohourItem(Item):
 	proj_url = Field()      	# proj url, www.demohour.com/projects/proj_id
 	proj_id = Field()       	# proj id  
 	proj_name = Field()     	# proj title
-	proj_target = Field()     	# how much money to be raised
+	proj_funding_target = Field()     	# how much money to be raised
 	proj_current_funding_amount = Field()
 	proj_current_funding_percentage = Field()
 	proj_leftover_time = Field()
@@ -92,15 +92,15 @@ class DemohourItem(Item):
 	
 	###################################################################################################################################	
 	# section of proj_owner_table
-	# (proj_owner_owner_id(PK), proj_owner_proj_id(PK), proj_owner_owner_name, proj_owner_star_level, proj_owner_last_log_in_time, proj_own_proj_count )
+	# (proj_owner_owner_id(PK), proj_owner_proj_id(PK), proj_owner_owner_name, proj_owner_star_level, proj_owner_last_log_in_time, proj_owner_own_proj_count, proj_owner_support_proj_count )
 	###################################################################################################################################	
 	proj_owner_owner_id = Field()
 	proj_owner_proj_id = Field()
 	proj_owner_owner_name = Field()
 	proj_owner_star_level = Field()
 	proj_owner_last_log_in_time = Field()
-	proj_own_proj_count = Field()
-	
+	proj_owner_own_proj_count = Field()
+	proj_owner_support_proj_count = Field()
 	###################################################################################################################################	
 	# section of post table
 	# (proj_id(PK), proj_post_id(PK), proj_post_timestamp
@@ -119,7 +119,7 @@ class DemohourItem(Item):
 	donate_donator_location = Field()
 	donate_donate_amount = Field()
 	donate_donate_time = Field()
-	
+	donate_donor_lists = []
 	###################################################################################################################################
 	# section of Topic table
 	# (topic_proj_id(PK), topic_announcement_count, topic_question_count, topic_up_count, topic_down_count)

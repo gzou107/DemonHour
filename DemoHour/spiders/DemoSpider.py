@@ -2,7 +2,7 @@ from scrapy.spider import BaseSpider
 from scrapy.selector import HtmlXPathSelector
 from DemoHour.items import DemohourItem
 from DemoHour.items import RewardOption
-from DemoHour.items import Supporter, projs_sidebar_Funding
+from DemoHour.items import Supporter
 from scrapy.http.request import Request
 
 
@@ -22,17 +22,18 @@ class DemoSpider(CrawlSpider):
 	# 318262 320144
 	# backers_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers',), deny=('page=1$',))
 	# 			supporter_name = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()").extract()
-	backers_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers?',), deny=('page=1$',) )
+	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers?',), deny=('page=1$',) )
+	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/318262$',), deny=('page=1$',) )
 	# proj_sidebar_funding = SgmlLinkExtractor( allow=('/projects/320144/posts$',), )
 	
 	rules = (	
 		# Extract link matching 'backers?page= and parse them with the spider's method, parse_one_page
 		# allow=('backers?page=')
-		Rule(backers_extractor, callback='parse_backers_links', follow = True),
+		# Rule(backers_table_extractor, callback='parse_backers_links', follow = True),
+		Rule(proj_table_extractor, callback = 'parse_sidebar_funding',follow = False),
 		# Rule(proj_sidebar_funding, callback = 'parse_sidebar_funding',follow = False),
 		# Extract link matching 
 		)
-	visited_url = set()
 	
 	def parse_backers_links(self, response):
 		hxs = HtmlXPathSelector(response)
@@ -65,37 +66,97 @@ class DemoSpider(CrawlSpider):
 		"""
 		hxs = HtmlXPathSelector(response)
 		
-		projs_sidebar_funding = hxs.select("//div[@class='sidebar-funding']")
+		item = DemohourItem()
 		
-		item = projs_sidebar_Funding()
+		##################################################################################################################
+		# section of proj table
+		projs_sidebar_funding = hxs.select("//div[@class='sidebar-funding']")
 		for p in projs_sidebar_funding:
-			projs_sidebar_money_raised_num_t = p.select(".//div[@class='sidebar-money-raised-num-t']").select(".//b/text()").extract()
-			print projs_sidebar_money_raised_num_t
-			item['projs_sidebar_money_raised_num_t'] = projs_sidebar_money_raised_num_t
+			proj_funding_target = p.select(".//div[@class='sidebar-money-raised-num-t']").select(".//b/text()").extract()
+			print proj_funding_target
+			item['proj_funding_target'] = proj_funding_target
 			
-			projs_sidebar_money_raised_num = p.select(".//div[@class='sidebar-money-raised-num']").select(".//b/text()").extract()
-			print projs_sidebar_money_raised_num
-			item['projs_sidebar_money_raised_num'] = projs_sidebar_money_raised_num
+			proj_current_funding_amount = p.select(".//div[@class='sidebar-money-raised-num']").select(".//b/text()").extract()
+			print proj_current_funding_amount
+			item['proj_current_funding_amount'] = proj_current_funding_amount
 			
-			projs_sidebar_percentage_progress_span = p.select(".//span[@class='sidebar-percentage-progress-span']/text()").extract()
-			print projs_sidebar_percentage_progress_span
-			item['projs_sidebar_percentage_progress_span'] = projs_sidebar_percentage_progress_span
+			proj_current_funding_percentage = p.select(".//span[@class='sidebar-percentage-progress-span']/text()").extract()
+			print proj_current_funding_percentage
+			item['proj_current_funding_percentage'] = proj_current_funding_percentage
 			
 			# this is how many people support this proj
-			projs_sidebar_number_days_1 = p.select(".//div[@class='sidebar-number-days-l']/b/b/text()").extract()
-			print "support num:", projs_sidebar_number_days_1
-			item['projs_sidebar_number_days_1'] = projs_sidebar_number_days_1
+			proj_supporter_count = p.select(".//div[@class='sidebar-number-days-l']/b/b/text()").extract()
+			print "support num:", proj_supporter_count
+			item['proj_supporter_count'] = proj_supporter_count
 			
 			# this is how many people view this proj
-			projs_sidebar_number_days_m = p.select(".//div[@class='sidebar-number-days-m']/b/b/text()").extract()
-			print "people view ", projs_sidebar_number_days_m
-			item['projs_sidebar_number_days_m'] = projs_sidebar_number_days_m
+			proj_surfer_count = p.select(".//div[@class='sidebar-number-days-m']/b/b/text()").extract()
+			print "people view ", proj_surfer_count
+			item['proj_surfer_count'] = proj_surfer_count
 			
 			# this is how many days left
-			projs_sidebar_number_days_r = p.select(".//div[@class='sidebar-number-days-r']/b/b/text()").extract()
-			print "days left ", projs_sidebar_number_days_r		
-			item['projs_sidebar_number_days_r'] = projs_sidebar_number_days_r	
-		yield item
+			proj_leftover_time = p.select(".//div[@class='sidebar-number-days-r']/b/b/text()").extract()
+			print "days left ", proj_leftover_time		
+			item['proj_leftover_time'] = proj_leftover_time	
+		# end of section of proj table
+		##################################################################################################################
+		
+		##################################################################################################################
+		# section of section of proj_owner_table
+		projs_owner = hxs.select("//div[@class='project-by']")
+		for p in projs_owner:
+			proj_owner_owner_name = p.select(".//a[@class='project-by-img-r-author']/text()").extract()
+			print "proj name: ", proj_owner_owner_name
+			item['proj_owner_owner_name'] = proj_owner_owner_name
+			
+			proj_owner_owner_id = p.select(".//a[@class='project-by-img-r-author']/@href").extract()
+			print "proj name url: ", proj_owner_owner_id
+			item['proj_owner_owner_id'] = proj_owner_owner_id
+			
+			proj_owner_last_log_in_time = p.select(".//div[@class='project-by-last-time']/text()").extract()
+			print "proj last update time,", proj_owner_last_log_in_time
+			item['proj_owner_last_log_in_time'] = proj_owner_last_log_in_time
+			
+			proj_by_post_support_list = p.select(".//div[@class='project-by-post']/a[@target='_blank']/span/text()").extract()
+			proj_owner_support_proj_count = 0
+			proj_owner_own_proj_count = 0
+			if len(proj_by_post_support_list) >= 1:
+				proj_owner_support_proj_count = proj_by_post_support_list[0]
+			if len(proj_by_post_support_list) >= 2:
+				proj_owner_own_proj_count = proj_by_post_support_list[1]
+			print "proj owner supports:", proj_owner_support_proj_count
+			print "proj owner owns:", proj_owner_own_proj_count
+		# end of section of proj_owner_table
+		##################################################################################################################
+
+		##################################################################################################################
+        # section of donation table, we need to follow the link within the donor page (pagination)
+		backers = hxs.select("//div[@class='ui-tab-layout']/ul[@class='ui-tab-menu']/li/a/@href")
+		if len(backers) == 3: # we have current tab, posts and backers tab
+		###
+		#u'/projects/318262/backers'
+		# >>> response.url
+		# 'http://www.demohour.com/projects/318262'
+		###
+			backer_relative_urls = backers[2].extract().split('/')
+			backer_relative_url = backer_relative_urls[len(backer_relative_urls) - 1]
+			backers_full_url = response.url + '/' + backer_relative_url
+			yield Request(backers_full_url, self.parse_backers_links)
+	
+			for item2 in self.parse_backers_links(response):
+				# we have supporter information here
+				yield item2
+				print "supporter name:", item2['supporter_name']
+				print "supporter url:", item2['supporter_url']
+				print "supporter icon:", item2['supporter_icon'] 
+				print "supporter support time", item2['supporter_support_time']
+				print "supporter support amount", item2['supporter_support_amount'] 
+				print "supporter support total proj count", item2['supporter_total_support_proj'] 
+
+		# end of section of donation table
+		##################################################################################################################
+		
+		# yield item
 	"""
 	def parse(self, response):
 		self.log('hi, this is an item page! %s' %response.url)
