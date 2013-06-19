@@ -9,7 +9,7 @@ from scrapy import log
 from twisted.enterprise import adbapi
 
 import time
-import MySQLdb.cursors
+# import MySQLdb.cursors
 
 class DemohourPipeline(object):
     def process_item(self, item, spider):

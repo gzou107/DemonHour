@@ -29,7 +29,7 @@ class DemoSpider(CrawlSpider):
 	rules = (	
 		# Extract link matching 'backers?page= and parse them with the spider's method, parse_one_page
 		# allow=('backers?page=')
-		# Rule(backers_table_extractor, callback='parse_backers_links', follow = True),
+		Rule(backers_table_extractor, callback='parse_backers_links', follow = True),
 		Rule(proj_table_extractor, callback = 'parse_sidebar_funding',follow = False),
 		# Rule(proj_sidebar_funding, callback = 'parse_sidebar_funding',follow = False),
 		# Extract link matching 
@@ -62,7 +62,8 @@ class DemoSpider(CrawlSpider):
 	
 	def parse_sidebar_funding(self, response):
 		"""
-		This will parse the side bar and return the info for side bar funding
+		 maybe we should return a dict and then in the item pipeline, we will handle the processing based on keys
+		 we will also need the persistent strategies now.
 		"""
 		hxs = HtmlXPathSelector(response)
 		
@@ -143,16 +144,21 @@ class DemoSpider(CrawlSpider):
 			backers_full_url = response.url + '/' + backer_relative_url
 			yield Request(backers_full_url, self.parse_backers_links)
 	
+			donate_donor_lists = []
 			for item2 in self.parse_backers_links(response):
 				# we have supporter information here
-				yield item2
+				donate_donor_lists.append(item2)
+				# yield item2
 				print "supporter name:", item2['supporter_name']
 				print "supporter url:", item2['supporter_url']
 				print "supporter icon:", item2['supporter_icon'] 
 				print "supporter support time", item2['supporter_support_time']
 				print "supporter support amount", item2['supporter_support_amount'] 
-				print "supporter support total proj count", item2['supporter_total_support_proj'] 
-
+				print "supporter support total proj count", item2['supporter_total_support_proj']
+			# how to save the value here, should I put it in a standalone item, but add the proj_id to join back later.
+			
+			item['donate_donor_lists'] = donate_donor_lists
+		yield item
 		# end of section of donation table
 		##################################################################################################################
 		

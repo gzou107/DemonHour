@@ -119,7 +119,7 @@ class DemohourItem(Item):
 	donate_donator_location = Field()
 	donate_donate_amount = Field()
 	donate_donate_time = Field()
-	donate_donor_lists = []
+	donate_donor_lists = set()
 	###################################################################################################################################
 	# section of Topic table
 	# (topic_proj_id(PK), topic_announcement_count, topic_question_count, topic_up_count, topic_down_count)
