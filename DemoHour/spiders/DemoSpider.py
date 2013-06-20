@@ -1,8 +1,6 @@
 from scrapy.spider import BaseSpider
 from scrapy.selector import HtmlXPathSelector
-from DemoHour.items import DemohourItem
-from DemoHour.items import RewardOption
-from DemoHour.items import Supporter
+from DemoHour.items import DemohourItem, Proj_Item, Proj_Owner_Item, Proj_Incentive_Options, Proj_Supporter
 from scrapy.http.request import Request
 
 
@@ -67,66 +65,78 @@ class DemoSpider(CrawlSpider):
 		"""
 		hxs = HtmlXPathSelector(response)
 		
-		item = DemohourItem()
-		
 		##################################################################################################################
 		# section of proj table
 		projs_sidebar_funding = hxs.select("//div[@class='sidebar-funding']")
+		proj_list = []
 		for p in projs_sidebar_funding:
+			proj = Proj_Item()
 			proj_funding_target = p.select(".//div[@class='sidebar-money-raised-num-t']").select(".//b/text()").extract()
 			print proj_funding_target
-			item['proj_funding_target'] = proj_funding_target
+			proj['proj_funding_target'] = proj_funding_target
 			
 			proj_current_funding_amount = p.select(".//div[@class='sidebar-money-raised-num']").select(".//b/text()").extract()
 			print proj_current_funding_amount
-			item['proj_current_funding_amount'] = proj_current_funding_amount
+			proj['proj_current_funding_amount'] = proj_current_funding_amount
 			
 			proj_current_funding_percentage = p.select(".//span[@class='sidebar-percentage-progress-span']/text()").extract()
 			print proj_current_funding_percentage
-			item['proj_current_funding_percentage'] = proj_current_funding_percentage
+			proj['proj_current_funding_percentage'] = proj_current_funding_percentage
 			
 			# this is how many people support this proj
 			proj_supporter_count = p.select(".//div[@class='sidebar-number-days-l']/b/b/text()").extract()
 			print "support num:", proj_supporter_count
-			item['proj_supporter_count'] = proj_supporter_count
+			proj['proj_supporter_count'] = proj_supporter_count
 			
 			# this is how many people view this proj
 			proj_surfer_count = p.select(".//div[@class='sidebar-number-days-m']/b/b/text()").extract()
 			print "people view ", proj_surfer_count
-			item['proj_surfer_count'] = proj_surfer_count
+			proj['proj_surfer_count'] = proj_surfer_count
 			
 			# this is how many days left
 			proj_leftover_time = p.select(".//div[@class='sidebar-number-days-r']/b/b/text()").extract()
 			print "days left ", proj_leftover_time		
-			item['proj_leftover_time'] = proj_leftover_time	
+			proj['proj_leftover_time'] = proj_leftover_time	
+			proj_list.append(proj)
+		
+		for pr in proj_list:
+			yield pr
 		# end of section of proj table
 		##################################################################################################################
 		
 		##################################################################################################################
 		# section of section of proj_owner_table
 		projs_owner = hxs.select("//div[@class='project-by']")
+		proj_owner_list = []
 		for p in projs_owner:
+			proj_owner = Proj_Owner_Item()
 			proj_owner_owner_name = p.select(".//a[@class='project-by-img-r-author']/text()").extract()
 			print "proj name: ", proj_owner_owner_name
-			item['proj_owner_owner_name'] = proj_owner_owner_name
+			proj_owner['proj_owner_owner_name'] = proj_owner_owner_name
 			
 			proj_owner_owner_id = p.select(".//a[@class='project-by-img-r-author']/@href").extract()
 			print "proj name url: ", proj_owner_owner_id
-			item['proj_owner_owner_id'] = proj_owner_owner_id
+			proj_owner['proj_owner_owner_id'] = proj_owner_owner_id
 			
 			proj_owner_last_log_in_time = p.select(".//div[@class='project-by-last-time']/text()").extract()
 			print "proj last update time,", proj_owner_last_log_in_time
-			item['proj_owner_last_log_in_time'] = proj_owner_last_log_in_time
+			proj_owner['proj_owner_last_log_in_time'] = proj_owner_last_log_in_time
 			
 			proj_by_post_support_list = p.select(".//div[@class='project-by-post']/a[@target='_blank']/span/text()").extract()
 			proj_owner_support_proj_count = 0
 			proj_owner_own_proj_count = 0
 			if len(proj_by_post_support_list) >= 1:
 				proj_owner_support_proj_count = proj_by_post_support_list[0]
+				proj_owner['proj_owner_own_proj_count'] = proj_by_post_support_list[0]
 			if len(proj_by_post_support_list) >= 2:
 				proj_owner_own_proj_count = proj_by_post_support_list[1]
+				proj_owner['proj_owner_support_proj_count'] = proj_by_post_support_list[0]
 			print "proj owner supports:", proj_owner_support_proj_count
 			print "proj owner owns:", proj_owner_own_proj_count
+			proj_owner_list.append(proj_owner)
+			
+		for p_owner in proj_owner_list:
+			yield p_owner
 		# end of section of proj_owner_table
 		##################################################################################################################
 
@@ -144,21 +154,15 @@ class DemoSpider(CrawlSpider):
 			backers_full_url = response.url + '/' + backer_relative_url
 			yield Request(backers_full_url, self.parse_backers_links)
 	
-			donate_donor_lists = []
-			for item2 in self.parse_backers_links(response):
-				# we have supporter information here
-				donate_donor_lists.append(item2)
-				# yield item2
-				print "supporter name:", item2['supporter_name']
-				print "supporter url:", item2['supporter_url']
-				print "supporter icon:", item2['supporter_icon'] 
-				print "supporter support time", item2['supporter_support_time']
-				print "supporter support amount", item2['supporter_support_amount'] 
-				print "supporter support total proj count", item2['supporter_total_support_proj']
+			for supporter in self.parse_backers_links(response): # we have supporter information here
+				print "supporter name:", supporter['supporter_name']
+				print "supporter url:", supporter['supporter_url']
+				print "supporter icon:", supporter['supporter_icon'] 
+				print "supporter support time", supporter['supporter_support_time']
+				print "supporter support amount", supporter['supporter_support_amount'] 
+				print "supporter support total proj count", supporter['supporter_total_support_proj']
+				yield supporter
 			# how to save the value here, should I put it in a standalone item, but add the proj_id to join back later.
-			
-			item['donate_donor_lists'] = donate_donor_lists
-		yield item
 		# end of section of donation table
 		##################################################################################################################
 		
@@ -201,7 +205,7 @@ class DemoSpider(CrawlSpider):
 		backers = hxs.select("//div[@class='projects-backers-left']/div[@class='supporters']")
 		items = []
 		
-		loader = XPathItemLoader(item = Supporter(), response = response)
+		# loader = XPathItemLoader(item = Supporter(), response = response)
 		
 		"""
 		for backer in backers:
@@ -216,7 +220,7 @@ class DemoSpider(CrawlSpider):
 		"""
 		
 		for backer in backers:
-			item = Supporter()			
+			item = Proj_Supporter()			
 			# div.supporters:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div:nth-child(2) > a:nth-child(1)
 			supporter_name = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()").extract()
 			supporter_url = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/@href").extract()

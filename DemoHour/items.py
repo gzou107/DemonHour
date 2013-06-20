@@ -10,9 +10,29 @@ import re
 from scrapy.contrib.loader import ItemLoader
 from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
 
-class Supporter(Item):
+class Proj_Item(Item):
+	###################################################################################################################################
+    # section of proj table
+	# (proj_url, proj_id(PK), proj_name, proj_target, proj_current_funding, proj_funding_percentage, proj_left_over_time, proj_crator_name, proj_crator_location)
+	###################################################################################################################################
+	proj_url = Field()      	# proj url, www.demohour.com/projects/318262
+	proj_id = Field()       	# proj id , 318262 
+	proj_name = Field()     	# proj title, SmartWallit
+	proj_funding_target = Field()     	# how much money to be raised
+	proj_current_funding_amount = Field()
+	proj_current_funding_percentage = Field()
+	proj_leftover_time = Field()
+	proj_owner_name = Field()
+	proj_owner_location = Field()	
+	proj_status = Field()
+	proj_supporter_count = Field()
+	proj_surfer_count = Field()
+	proj_topic_count = Field()
+	
+class Proj_Supporter(Item):
+	supporter_proj_id = Field()
 	supporter_name = Field()
-	supporter_url = Field()
+	supporter_url = Field()           # this is equivalent og supporter_id
 	supporter_icon = Field()
 	supporter_support_time = Field()
 	supporter_support_amount = Field()
@@ -46,19 +66,44 @@ class Supporter(Item):
 		count = re.search('[0-9]+', total_support_proj_cnt);
 		return count.group(0)
 
-"""
-class SupporterLoader(ItemLoader):
-	supporter_url = MapCompose(clean_supporter_url, ItemLoader.supporter_url)
-	supporter_icon = MapCompose(clean_supporter_icon, ItemLoader.supporter_icon)
-	supporter_support_time = MapCompose(clean_supporter_support_time, ItemLoader.supporter_support_time)
-	supporter_total_support_proj = MapCompose(clean_supporter_total_support_proj, ItemLoader.supporter_total_support_proj)	
-"""
-class RewardOption(Item):
-	# section of proj reward options
-	proj_reward_support_amount = Field()
-	proj_reward_supporter_count = Field()
-	proj_reward_supporter_limit = Field()
+class Proj_Topic(Item):
+	###################################################################################################################################
+	# section of Topic table
+	# (topic_proj_id(PK), topic_announcement_count, topic_question_count, topic_up_count, topic_down_count)
+	###################################################################################################################################
+	topic_proj_id = Field() # same as proj_id
+	topic_announcement_count = Field()
+	topic_question_count = Field()
+	topic_up_count = Field()
+	topic_down_count = Field()
+	
+class Proj_Incentive_Options(Item):
+	###################################################################################################################################	
+	# section of incentive table
+	# (incentive_proj_id(PK), incentive_id(PK), incentive_amount, incentive_number_of_limited_donor,incentive_description)
+	###################################################################################################################################	
+	incentive_proj_id = Field()
+	incentive_id = Field()
+	incentive_amount = Field()
+	incentive_number_of_limited_donor = Field()
+	incentive_description = Field()
+	
 
+class Proj_Owner_Item(Item):
+	###################################################################################################################################	
+	# section of proj_owner_table
+	# (proj_owner_owner_id(PK), proj_owner_proj_id(PK), proj_owner_owner_name, proj_owner_star_level, proj_owner_last_log_in_time, proj_owner_own_proj_count, proj_owner_support_proj_count )
+	###################################################################################################################################	
+	proj_owner_owner_id = Field()
+	proj_owner_proj_id = Field()
+	proj_owner_owner_name = Field()
+	proj_owner_star_level = Field()
+	proj_owner_last_log_in_time = Field()
+	proj_owner_own_proj_count = Field()
+	proj_owner_support_proj_count = Field()
+
+
+	
 class proj_sidebar_Funding(Item):
 	#section of proj sidebar funding
 	proj_sidebar_money_raised_num_t = Field()

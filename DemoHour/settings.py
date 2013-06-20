@@ -15,6 +15,7 @@ NEWSPIDER_MODULE = 'DemoHour.spiders'
 #USER_AGENT = 'DemoHour (+http://www.yourdomain.com)'
 ITEM_PIPELINES = [
 	'DemoHour.pipelines.DemohourPipeline',
+	'DemoHour.pipelines.MultiCSVItemPipeline',
     # 'DemoHour.pipelines.DuplicatesPipeline',
 	# 'DemoHour.pipelines.MySQLStorePipeline',
 ]

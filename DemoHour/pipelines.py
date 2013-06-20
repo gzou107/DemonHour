@@ -8,6 +8,10 @@ from scrapy.exceptions import DropItem
 from scrapy import log
 from twisted.enterprise import adbapi
 
+from scrapy.contrib.exporter import CsvItemExporter
+from scrapy.xlib.pydispatch import dispatcher
+# ref: http://doc.scrapy.org/en/0.14/topics/exporters.html
+
 import time
 # import MySQLdb.cursors
 
@@ -72,3 +76,34 @@ class MySQLStorePipeline(object):
 			
 	def handle_error(self, e):
 		log.err(e)
+
+class MultiCSVItemPipeline(object):
+	"""
+	This class is used to persistent different items into differnet CSV files per its type
+	TBD: we will write another pipeline which will save the results into DB after we can verify that the scrapy works
+	"""
+	SaveTypes = ['Proj_Owner', 'Proj', 'Proj_Supporter']
+	CSVDir = 'C:\\laopo\\DemonHour\\'
+	def item_type(self, item):
+		return type(item).__name__.replace('_Item','') # Proj_Item -->Proj
+		
+	def __init__(self):
+		dispatcher.connect(self.spider_opened, signal = signals.spider_opened)
+		dispatcher.connect(self.spider_closed, signal = signals.spider_closed)
+		
+	def spider_opened(self, spider):
+		self.files = dict([ ( name, open(self.CSVDir + name + '.csv', 'w+b')) for name in self.SaveTypes])
+		self.exporters = dict([ (name, CsvItemExporter(self.files[name], include_headers_line = True, encoding = 'utf-8')) for name in self.SaveTypes])
+		[e.start_exporting() for e in self.exporters.values()]
+		
+	def spider_closed(self, spider):
+		[e.finish_exporting() for e in self.exporters.values()]
+		[f.close() for f in self.files.values()]
+		
+	def process_item(self, item, spider):
+		# print item
+		print(" my type is %s" %type(item).__name__)
+		what = self.item_type(item)
+		#if what in set(self.SaveTypes):
+		self.exporters[what].export_item(item)
+		return item
