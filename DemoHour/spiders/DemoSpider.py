@@ -18,17 +18,18 @@ class DemoSpider(CrawlSpider):
 	# , 'http://www.demohour.com/projects/317769']
 	# SgmlLinkExtractor(allow=('demohour.com/projects/[0-9]+/backers'))
 	# 318262 320144
+	# http://www.demohour.com/projects/317272
 	# backers_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers',), deny=('page=1$',))
 	# 			supporter_name = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()").extract()
-	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers?',), deny=('page=1$',) )
-	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/318262$',), deny=('page=1$',) )
+	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers?','/projects/317272/backers?',), deny=('page=1$',) )
+	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/318262$','/projects/317272$'), deny=('page=1$',) )
 	# proj_sidebar_funding = SgmlLinkExtractor( allow=('/projects/320144/posts$',), )
 	
 	rules = (	
 		# Extract link matching 'backers?page= and parse them with the spider's method, parse_one_supporters_page
 		# allow=('backers?page=')
 		Rule(backers_table_extractor, callback='parse_backers_links', follow = True),
-		Rule(proj_table_extractor, callback = 'parse_proj_info',follow = False),
+		Rule(proj_table_extractor, callback = 'parse_proj_info',follow = True),
 		# Rule(proj_sidebar_funding, callback = 'parse_sidebar_funding',follow = False),
 		# Extract link matching 
 		)
@@ -45,7 +46,8 @@ class DemoSpider(CrawlSpider):
 			yield item
 		
 		
-	
+	def add_url_prefix(self, url):
+		return "www.demohour.com" + url
 	
 	def parse_proj_info(self, response):
 		"""
@@ -56,41 +58,107 @@ class DemoSpider(CrawlSpider):
 		
 		##################################################################################################################
 		# section of proj table
-		# (proj_url, proj_id(PK), proj_name, proj_target, proj_current_funding, proj_funding_percentage, proj_left_over_time, proj_crator_name, proj_crator_location)
+		# (proj_url, proj_id(PK), proj_name, proj_funding_target, proj_current_funding_amount, proj_current_funding_percentage, proj_status, proj_left_over_time, proj_owner_name, 
+		#   proj_owner_location, proj_supporter_count, proj_surfer_count, proj_topic_count)
+		###################################################################################################################
+		proj = Proj_Item()
+		# get proj url, add prefix to get the complete url
+		proj_url = hxs.select("//div[@class='ui-tab']/div[@class='ui-tab-top']/h1/a/@href").extract()		
+		if len(proj_url) != 1:
+			self.log("Parse the proj url error. %s" %response.url)
+		proj['proj_url'] = self.add_url_prefix(proj_url[0])
+		
+		# one very important id -->Proj_Id
+		PROJ_ID = proj_url[0].split('/')
+		if len(PROJ_ID) != 3:
+			self.log("Parse Proj_id error. %s" %response.url)
+		else:
+			PROJ_ID = PROJ_ID[len(PROJ_ID) - 1]
+			proj['proj_id'] = PROJ_ID
+		
+		
+		# get the proj name
+		proj_title = hxs.select("//div[@class='ui-tab']/div[@class='ui-tab-top']/h1/a/text()").extract()
+		if len(proj_title) != 1:
+			self.log("Parse the proj name error. %s" %response.url)
+		else:
+			proj['proj_name'] = proj_title[0]
+		
+
 		projs_sidebar_funding = hxs.select("//div[@class='sidebar-funding']")
-		proj_list = []
-		for p in projs_sidebar_funding:
-			proj = Proj_Item()
+		if(len(projs_sidebar_funding) != 1):
+			self.log("Parse the proj table error. %s" %response.url)
+		else:
+			# get proj_funding_target		
+			p = projs_sidebar_funding[0]
 			proj_funding_target = p.select(".//div[@class='sidebar-money-raised-num-t']").select(".//b/text()").extract()
 			print proj_funding_target
 			proj['proj_funding_target'] = proj_funding_target
-			
+			# get proj_current_funding_amount	
 			proj_current_funding_amount = p.select(".//div[@class='sidebar-money-raised-num']").select(".//b/text()").extract()
 			print proj_current_funding_amount
 			proj['proj_current_funding_amount'] = proj_current_funding_amount
 			
+			# get proj_current_funding_percentage	
 			proj_current_funding_percentage = p.select(".//span[@class='sidebar-percentage-progress-span']/text()").extract()
 			print proj_current_funding_percentage
 			proj['proj_current_funding_percentage'] = proj_current_funding_percentage
-			
+
 			# this is how many people support this proj
 			proj_supporter_count = p.select(".//div[@class='sidebar-number-days-l']/b/b/text()").extract()
 			print "support num:", proj_supporter_count
 			proj['proj_supporter_count'] = proj_supporter_count
-			
+				
 			# this is how many people view this proj
 			proj_surfer_count = p.select(".//div[@class='sidebar-number-days-m']/b/b/text()").extract()
 			print "people view ", proj_surfer_count
 			proj['proj_surfer_count'] = proj_surfer_count
 			
-			# this is how many days left
+			# get topic of the proj
+			topic_count = hxs.select("//ul[@class='ui-tab-menu']/li/a/span[@id='posts_count']/text()").extract()
+			if len(topic_count) != 1:
+				self.log("Parse topic count error. %s" %response.url)
+			else:
+				proj['proj_topic_count'] = topic_count
+				
+			# get the proj_status
+			proj_status = p.select(".//div[@class='sidebar-number-days-r']/span/text()").extract()
+			if len(proj_status) != 1:
+				self.log("Parse proj status error. %s" %response.url)
+			else:
+				proj['proj_status'] = proj_status[0]
+				
+			# get how many days left
 			proj_leftover_time = p.select(".//div[@class='sidebar-number-days-r']/b/b/text()").extract()
 			print "days left ", proj_leftover_time		
 			proj['proj_leftover_time'] = proj_leftover_time	
-			proj_list.append(proj)
+
+			# get the unit of left_over
+			proj_leftover_time_units = p.select(".//div[@class='sidebar-number-days-r']/b/text()").extract()
+			if len(proj_leftover_time_units) == 1:
+				proj['proj_left_over_time_unit'] = 0  # proj complete
+			elif len(proj_leftover_time_units) == 2:
+				proj['proj_left_over_time_unit'] = proj_leftover_time_units[1]
+			else:
+				self.log("Parse proj left over time error. %s" %response.url)
 		
-		for pr in proj_list:
-			yield pr
+		# get proj_owner information
+		projs_owner = hxs.select("//div[@class='project-by']")
+		if len(projs_owner) != 1:
+			self.log("Parse proj owner error. %s" %response.url)
+		else:
+			p = projs_owner[0]
+			proj_owner_owner_name = p.select(".//a[@class='project-by-img-r-author']/text()").extract()
+			proj['proj_owner_name'] = proj_owner_owner_name
+			
+		# get proj_location
+		projs_locations = hxs.select("//div[@class='projects-home-left-seat']/a[@target='_blank']/text()").extract()
+		if len(projs_locations) != 3:
+			self.log("Parse proj location error. %s" %response.url)
+		else:
+			proj['proj_location'] = projs_locations[2]
+
+		yield proj
 		# end of section of proj table
 		##################################################################################################################
 		
