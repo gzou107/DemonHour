@@ -25,10 +25,10 @@ class DemoSpider(CrawlSpider):
 	# proj_sidebar_funding = SgmlLinkExtractor( allow=('/projects/320144/posts$',), )
 	
 	rules = (	
-		# Extract link matching 'backers?page= and parse them with the spider's method, parse_one_page
+		# Extract link matching 'backers?page= and parse them with the spider's method, parse_one_supporters_page
 		# allow=('backers?page=')
 		Rule(backers_table_extractor, callback='parse_backers_links', follow = True),
-		Rule(proj_table_extractor, callback = 'parse_sidebar_funding',follow = False),
+		Rule(proj_table_extractor, callback = 'parse_proj_info',follow = False),
 		# Rule(proj_sidebar_funding, callback = 'parse_sidebar_funding',follow = False),
 		# Extract link matching 
 		)
@@ -39,26 +39,15 @@ class DemoSpider(CrawlSpider):
 		current_page = hxs.select("//div[@class='ui-pagination-current']/ul/li/a/@href")
 		
 		if not not current_page:
-			yield Request(current_page[0], self.parse_one_page)
-		"""	
-		links = hxs.select("//div[@class='ui-pagination']/ul/li/a/@href")
-		for link in links:
-			link_url = link.extract()
-			self.log("I am in link %s" %link_url)
-	
-			if re.search('page=1$', link_url):
-				self.log('match rule: %s' %link_url)
-				print link_url
-			else:
-				yield Request(link_url, self.parse_one_page)
-		"""
-		for item in self.parse_one_page(response):
+			yield Request(current_page[0], self.parse_one_supporters_page)
+
+		for item in self.parse_one_supporters_page(response):
 			yield item
 		
 		
 	
 	
-	def parse_sidebar_funding(self, response):
+	def parse_proj_info(self, response):
 		"""
 		 maybe we should return a dict and then in the item pipeline, we will handle the processing based on keys
 		 we will also need the persistent strategies now.
@@ -67,6 +56,7 @@ class DemoSpider(CrawlSpider):
 		
 		##################################################################################################################
 		# section of proj table
+		# (proj_url, proj_id(PK), proj_name, proj_target, proj_current_funding, proj_funding_percentage, proj_left_over_time, proj_crator_name, proj_crator_location)
 		projs_sidebar_funding = hxs.select("//div[@class='sidebar-funding']")
 		proj_list = []
 		for p in projs_sidebar_funding:
@@ -142,13 +132,13 @@ class DemoSpider(CrawlSpider):
 
 		##################################################################################################################
         # section of donation table, we need to follow the link within the donor page (pagination)
+		##########################################################################################
+		#u'/projects/318262/backers'                                                             # 
+		# >>> response.url                                                                       #
+		# 'http://www.demohour.com/projects/318262'                                              # 
+		##########################################################################################
 		backers = hxs.select("//div[@class='ui-tab-layout']/ul[@class='ui-tab-menu']/li/a/@href")
 		if len(backers) == 3: # we have current tab, posts and backers tab
-		###
-		#u'/projects/318262/backers'
-		# >>> response.url
-		# 'http://www.demohour.com/projects/318262'
-		###
 			backer_relative_urls = backers[2].extract().split('/')
 			backer_relative_url = backer_relative_urls[len(backer_relative_urls) - 1]
 			backers_full_url = response.url + '/' + backer_relative_url
@@ -162,62 +152,18 @@ class DemoSpider(CrawlSpider):
 				print "supporter support amount", supporter['supporter_support_amount'] 
 				print "supporter support total proj count", supporter['supporter_total_support_proj']
 				yield supporter
-			# how to save the value here, should I put it in a standalone item, but add the proj_id to join back later.
 		# end of section of donation table
 		##################################################################################################################
 		
 		# yield item
-	"""
-	def parse(self, response):
-		self.log('hi, this is an item page! %s' %response.url)
-		
-		if response.meta['depth'] > 5:
-			self.log('reach depth of 5 when at page %s' % response.url)
-			
-		hxs = HtmlXPathSelector(response)
 
-		# firstly get the total backer count so that we know the pagination number
-		count_str = hxs.select("//a[@class='ui-tab-current']/span[@id='backer_count']/text()").extract()
-		print "total supporter count: ", count_str
-		count = int(count_str[0])
-		backer_per_page = 40
-		
-		current_page = hxs.select("//div[@class='ui-pagination']/ul/li[@class = 'ui-pagination-current']/a/@href").extract()
-		for i in range(1, count/backer_per_page + 2):
-			page_url_base = current_page[0].split('?')
-			page_url_prefix = page_url_base[0]
-			page_url = page_url_prefix + '?' + 'page='+ str(i)
-			yield Request(page_url, self.parse_one_page)
-		
-		
-		visited_page = set()
-		for page in pages:
-			if not page in visited_page:
-				visited_page.add(page)
-				yield Request(page, self.parse_one_page)
-		
-	"""	
-	def parse_one_page(self, response):
+	def parse_one_supporters_page(self, response):
 		
 		hxs = HtmlXPathSelector(response)
 		# titles = hxs.select("//span[@class='pl']")
 		# avoid double parse here???
 		backers = hxs.select("//div[@class='projects-backers-left']/div[@class='supporters']")
-		items = []
-		
-		# loader = XPathItemLoader(item = Supporter(), response = response)
-		
-		"""
-		for backer in backers:
-			loader.add_xpath('supporter_name', ".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()")
-			loader.add_xpath('supporter_url', ".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/@href")
-			loader.add_xpath('supporter_icon',".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/div[@class='icon-sun-ms']/a/text()")
-			loader.add_xpath('supporter_support_time', ".//div[@class='supportersmeta']/text()[2]")
-			loader.add_xpath('supporter_total_support_proj', ".//div[@class='supportersmeta']/text()[4]")
-			loader.add_xpath('supporter_support_amount', ".//div[@class='supportersmeta']/text()[3]")
-			items.append(loader.load_item())
-		return items
-		"""
+		items = []		
 		
 		for backer in backers:
 			item = Proj_Supporter()			

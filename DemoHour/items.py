@@ -88,7 +88,6 @@ class Proj_Incentive_Options(Item):
 	incentive_number_of_limited_donor = Field()
 	incentive_description = Field()
 	
-
 class Proj_Owner_Item(Item):
 	###################################################################################################################################	
 	# section of proj_owner_table
@@ -101,7 +100,6 @@ class Proj_Owner_Item(Item):
 	proj_owner_last_log_in_time = Field()
 	proj_owner_own_proj_count = Field()
 	proj_owner_support_proj_count = Field()
-
 
 	
 class proj_sidebar_Funding(Item):
