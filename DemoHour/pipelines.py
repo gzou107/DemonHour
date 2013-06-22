@@ -76,7 +76,8 @@ class MySQLStorePipeline(object):
 			
 	def handle_error(self, e):
 		log.err(e)
-
+		
+import time
 class MultiCSVItemPipeline(object):
 	"""
 	This class is used to persistent different items into differnet CSV files per its type
@@ -84,15 +85,19 @@ class MultiCSVItemPipeline(object):
 	"""
 	SaveTypes = ['Proj_Owner', 'Proj', 'Proj_Supporter']
 	CSVDir = 'C:\\laopo\\DemonHour\\'
+	scrapyTime = time.localtime()
 	def item_type(self, item):
 		return type(item).__name__.replace('_Item','') # Proj_Item -->Proj
 		
 	def __init__(self):
+
 		dispatcher.connect(self.spider_opened, signal = signals.spider_opened)
 		dispatcher.connect(self.spider_closed, signal = signals.spider_closed)
 		
 	def spider_opened(self, spider):
-		self.files = dict([ ( name, open(self.CSVDir + name + '.csv', 'w+b')) for name in self.SaveTypes])
+		scrapyTime = time.localtime()
+		time_postfix = '_' + str( scrapyTime.tm_year) + '_' + str(scrapyTime.tm_mon) + '_' + str(scrapyTime.tm_mday )+ '_' + str(scrapyTime.tm_hour) +'_' + str( scrapyTime.tm_min)
+		self.files = dict([ ( name, open(self.CSVDir + name + time_postfix + '.csv', 'w+b')) for name in self.SaveTypes])
 		self.exporters = dict([ (name, CsvItemExporter(self.files[name], include_headers_line = True, encoding = 'utf-8')) for name in self.SaveTypes])
 		[e.start_exporting() for e in self.exporters.values()]
 		

@@ -13,7 +13,7 @@ class DemoSpider(CrawlSpider):
 	name = 'DemoHourSpider'
 	domain = ['demohour.com']
 	start_urls = [
-	'http://www.demohour.com/projects/318262'
+	'http://www.demohour.com/projects/320084'
 	]
 	# , 'http://www.demohour.com/projects/317769']
 	# SgmlLinkExtractor(allow=('demohour.com/projects/[0-9]+/backers'))
@@ -21,15 +21,16 @@ class DemoSpider(CrawlSpider):
 	# http://www.demohour.com/projects/317272
 	# backers_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers',), deny=('page=1$',))
 	# 			supporter_name = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()").extract()
-	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers?','/projects/317272/backers?',), deny=('page=1$',) )
-	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/318262$','/projects/317272$'), deny=('page=1$',) )
-	# proj_sidebar_funding = SgmlLinkExtractor( allow=('/projects/320144/posts$',), )
+	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/320084/backers?',), deny=('page=1$',) )
+	# '/projects/309168$', '/projects/320084$', '/projects/319703$'
+	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/320084',), deny=('page=1$',) )
+	# proj_sidebar_funding = SgmlLinkExtractor(allow=('/projects/318262/posts$',), )
 	
 	rules = (	
 		# Extract link matching 'backers?page= and parse them with the spider's method, parse_one_supporters_page
 		# allow=('backers?page=')
 		Rule(backers_table_extractor, callback='parse_backers_links', follow = True),
-		Rule(proj_table_extractor, callback = 'parse_proj_info',follow = True),
+		Rule(proj_table_extractor, callback = 'parse_proj_info',follow = False),
 		# Rule(proj_sidebar_funding, callback = 'parse_sidebar_funding',follow = False),
 		# Extract link matching 
 		)
@@ -86,8 +87,20 @@ class DemoSpider(CrawlSpider):
 		
 
 		projs_sidebar_funding = hxs.select("//div[@class='sidebar-funding']")
+		if len(projs_sidebar_funding) == 0:
+			projs_sidebar_funding = hxs.select("//div[@class='sidebar-warming']")
+			if len(projs_sidebar_funding) == 0:
+				projs_sidebar_funding = hxs.select("//div[@class='sidebar-success']")
+				if len(projs_sidebar_funding) == 0:
+					projs_sidebar_funding = hxs.select("//div[@class='sidebar-failure']")
+					
+		if len(projs_sidebar_funding) != 1:
+			self.log("Parse side bar funding error at url %s" %response.url)
+			print "Parse side bar funding error at url %s" %response.url
+			
 		if(len(projs_sidebar_funding) != 1):
 			self.log("Parse the proj table error. %s" %response.url)
+			print "Parse the proj table error. %s" %response.url
 		else:
 			# get proj_funding_target		
 			p = projs_sidebar_funding[0]
@@ -118,6 +131,7 @@ class DemoSpider(CrawlSpider):
 			topic_count = hxs.select("//ul[@class='ui-tab-menu']/li/a/span[@id='posts_count']/text()").extract()
 			if len(topic_count) != 1:
 				self.log("Parse topic count error. %s" %response.url)
+				print "Parse topic count error. %s" %response.url
 			else:
 				proj['proj_topic_count'] = topic_count
 				
@@ -125,6 +139,7 @@ class DemoSpider(CrawlSpider):
 			proj_status = p.select(".//div[@class='sidebar-number-days-r']/span/text()").extract()
 			if len(proj_status) != 1:
 				self.log("Parse proj status error. %s" %response.url)
+				print "Parse proj status error. %s" %response.url
 			else:
 				proj['proj_status'] = proj_status[0]
 				
@@ -141,6 +156,7 @@ class DemoSpider(CrawlSpider):
 				proj['proj_left_over_time_unit'] = proj_leftover_time_units[1]
 			else:
 				self.log("Parse proj left over time error. %s" %response.url)
+				print "Parse proj left over time error. %s" %response.url
 		
 		# get proj_owner information
 		projs_owner = hxs.select("//div[@class='project-by']")
@@ -155,6 +171,7 @@ class DemoSpider(CrawlSpider):
 		projs_locations = hxs.select("//div[@class='projects-home-left-seat']/a[@target='_blank']/text()").extract()
 		if len(projs_locations) != 3:
 			self.log("Parse proj location error. %s" %response.url)
+			print "Parse proj location error. %s" %response.url
 		else:
 			proj['proj_location'] = projs_locations[2]
 
@@ -164,17 +181,30 @@ class DemoSpider(CrawlSpider):
 		
 		##################################################################################################################
 		# section of section of proj_owner_table
+	    # (proj_owner_owner_id(PK), proj_owner_proj_id(PK), proj_owner_owner_name, proj_owner_star_level, proj_owner_last_log_in_time, 
+		#  proj_owner_own_proj_count, proj_owner_support_proj_count )
+        ##################################################################################################################
 		projs_owner = hxs.select("//div[@class='project-by']")
-		proj_owner_list = []
-		for p in projs_owner:
+		if len(projs_owner) != 1:
+			self.log("Parse the proj_owner error. %s" %response.url)
+			print "Parse the proj_owner error. %s" %response.url
+		else:
+			p = projs_owner[0]
 			proj_owner = Proj_Owner_Item()
-			proj_owner_owner_name = p.select(".//a[@class='project-by-img-r-author']/text()").extract()
-			print "proj name: ", proj_owner_owner_name
-			proj_owner['proj_owner_owner_name'] = proj_owner_owner_name
 			
 			proj_owner_owner_id = p.select(".//a[@class='project-by-img-r-author']/@href").extract()
 			print "proj name url: ", proj_owner_owner_id
 			proj_owner['proj_owner_owner_id'] = proj_owner_owner_id
+			
+			proj_owner['proj_owner_proj_id'] = PROJ_ID
+			
+			proj_owner_owner_name = p.select(".//a[@class='project-by-img-r-author']/text()").extract()
+			print "proj name: ", proj_owner_owner_name
+			proj_owner['proj_owner_owner_name'] = proj_owner_owner_name
+			
+			proj_owner_star_level = p.select(".//div[@class='project-by-img-r']/div[@class='icon-sun-m']/a/text()").extract()
+			print "proj proj_owner_star_level: ", proj_owner_star_level
+			proj_owner['proj_owner_star_level'] = proj_owner_star_level
 			
 			proj_owner_last_log_in_time = p.select(".//div[@class='project-by-last-time']/text()").extract()
 			print "proj last update time,", proj_owner_last_log_in_time
@@ -191,10 +221,8 @@ class DemoSpider(CrawlSpider):
 				proj_owner['proj_owner_support_proj_count'] = proj_by_post_support_list[0]
 			print "proj owner supports:", proj_owner_support_proj_count
 			print "proj owner owns:", proj_owner_own_proj_count
-			proj_owner_list.append(proj_owner)
-			
-		for p_owner in proj_owner_list:
-			yield p_owner
+
+			yield proj_owner
 		# end of section of proj_owner_table
 		##################################################################################################################
 
@@ -205,6 +233,7 @@ class DemoSpider(CrawlSpider):
 		# >>> response.url                                                                       #
 		# 'http://www.demohour.com/projects/318262'                                              # 
 		##########################################################################################
+		
 		backers = hxs.select("//div[@class='ui-tab-layout']/ul[@class='ui-tab-menu']/li/a/@href")
 		if len(backers) == 3: # we have current tab, posts and backers tab
 			backer_relative_urls = backers[2].extract().split('/')
@@ -224,7 +253,7 @@ class DemoSpider(CrawlSpider):
 		##################################################################################################################
 		
 		# yield item
-
+		
 	def parse_one_supporters_page(self, response):
 		
 		hxs = HtmlXPathSelector(response)
