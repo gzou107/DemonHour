@@ -8,6 +8,7 @@ from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 from scrapy.contrib.loader import XPathItemLoader
 import re
+from decimal import *
 
 class DemoSpider(CrawlSpider):
 	name = 'DemoHourSpider'
@@ -29,8 +30,8 @@ class DemoSpider(CrawlSpider):
 	rules = (	
 		# Extract link matching 'backers?page= and parse them with the spider's method, parse_one_supporters_page
 		# allow=('backers?page=')
-		Rule(backers_table_extractor, callback='parse_backers_links', follow = True),
 		Rule(proj_table_extractor, callback = 'parse_proj_info',follow = False),
+		Rule(backers_table_extractor, callback='parse_backers_links', follow = True),
 		# Rule(proj_sidebar_funding, callback = 'parse_sidebar_funding',follow = False),
 		# Extract link matching 
 		)
@@ -115,7 +116,15 @@ class DemoSpider(CrawlSpider):
 			# get proj_current_funding_percentage	
 			proj_current_funding_percentage = p.select(".//span[@class='sidebar-percentage-progress-span']/text()").extract()
 			print proj_current_funding_percentage
-			proj['proj_current_funding_percentage'] = proj_current_funding_percentage
+			if len(proj_current_funding_percentage) != 1:
+				self.log("Parse the proj_current_funding_percentage at url = %s" %response.url)
+			else:
+				percentage = re.search('[0-9]+.[0-9]+', proj_current_funding_percentage[0])
+				if percentage == None:
+					self.log("Parse the proj_current_funding_percentage at url = %s" %response.url)
+				else:
+					percentage = percentage.group(0)
+					proj['proj_current_funding_percentage'] = Decimal(percentage.strip('"'))/100
 
 			# this is how many people support this proj
 			proj_supporter_count = p.select(".//div[@class='sidebar-number-days-l']/b/b/text()").extract()
@@ -167,14 +176,17 @@ class DemoSpider(CrawlSpider):
 			proj_owner_owner_name = p.select(".//a[@class='project-by-img-r-author']/text()").extract()
 			proj['proj_owner_name'] = proj_owner_owner_name
 			
-		# get proj_location
+		# get proj_location --> this wil be extracted in another table
+		# reason is this information may not be available at back page, only exist in main page
+		"""
 		projs_locations = hxs.select("//div[@class='projects-home-left-seat']/a[@target='_blank']/text()").extract()
 		if len(projs_locations) != 3:
 			self.log("Parse proj location error. %s" %response.url)
 			print "Parse proj location error. %s" %response.url
 		else:
 			proj['proj_location'] = projs_locations[2]
-
+		"""
+		
 		yield proj
 		# end of section of proj table
 		##################################################################################################################
@@ -194,7 +206,14 @@ class DemoSpider(CrawlSpider):
 			
 			proj_owner_owner_id = p.select(".//a[@class='project-by-img-r-author']/@href").extract()
 			print "proj name url: ", proj_owner_owner_id
-			proj_owner['proj_owner_owner_id'] = proj_owner_owner_id
+			if len(proj_owner_owner_id) != 1:
+				self.log("Parse proj owner id from page %s error" %response.url)
+			else:
+				owner_id = re.search('[0-9]+$', proj_owner_owner_id[0])
+				if owner_id ==  None:
+					self.log("Extract the proj owner id from url = %s error" %response.url)
+				else:	
+					proj_owner['proj_owner_owner_id'] = owner_id.group(0)
 			
 			proj_owner['proj_owner_proj_id'] = PROJ_ID
 			
@@ -208,7 +227,11 @@ class DemoSpider(CrawlSpider):
 			
 			proj_owner_last_log_in_time = p.select(".//div[@class='project-by-last-time']/text()").extract()
 			print "proj last update time,", proj_owner_last_log_in_time
-			proj_owner['proj_owner_last_log_in_time'] = proj_owner_last_log_in_time
+			log_in = re.search('[\d]+/[\d]+/[\d]+', proj_owner_last_log_in_time[0])
+			if log_in == None:
+				self.log("parse proj owner proj_owner_last_log_in_time error at page %s" %response.url)
+			else:
+				proj_owner['proj_owner_last_log_in_time'] = log_in.group(0)
 			
 			proj_by_post_support_list = p.select(".//div[@class='project-by-post']/a[@target='_blank']/span/text()").extract()
 			proj_owner_support_proj_count = 0
@@ -260,12 +283,18 @@ class DemoSpider(CrawlSpider):
 		hxs = HtmlXPathSelector(response)
 		# titles = hxs.select("//span[@class='pl']")
 		# avoid double parse here???
+		backer_url = re.search('[0-9]+', response.url)
+		PROJ_ID = -1
+		if backer_url == None:
+			self.log('parse the proj_id in backer page error in %s' %response.url)
+		else:
+			PROJ_ID = backer_url.group(0)
+			
 		backers = hxs.select("//div[@class='projects-backers-left']/div[@class='supporters']")
 		items = []		
 		
 		for backer in backers:
 			item = Proj_Supporter()			
-			# div.supporters:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div:nth-child(2) > a:nth-child(1)
 			supporter_name = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()").extract()
 			supporter_url = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/@href").extract()
 			supporter_icon = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/div[@class='icon-sun-ms']/a/text()").extract()
@@ -284,6 +313,7 @@ class DemoSpider(CrawlSpider):
 			item['supporter_support_time']= item.clean_supporter_support_time(supporter_support_time[0])
 			item['supporter_support_amount'] = supporter_support_amount
 			item['supporter_total_support_proj'] = item.clean_supporter_total_support_proj(supporter_total_support_proj[0])
+			item['supporter_proj_id'] = PROJ_ID
 			items.append(item)
 
 		for item in items:

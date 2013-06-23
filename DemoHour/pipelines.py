@@ -18,19 +18,33 @@ import time
 class DemohourPipeline(object):
     def process_item(self, item, spider):
         return item
-		
-class DuplicatesPipeline(object):
 
+
+class DuplicatesPipeline(object):	
     def __init__(self):
-        self.ids_seen = set()
+        self.Proj_ids_seen_for_Proj_table = set()
+        self.Proj_ids_seen_for_Proj_Owner_table = set()
 
     def process_item(self, item, spider):
-        if item['supporter_name'][0] in self.ids_seen:
-            raise DropItem("Duplicate item found: %s" % item)
-        else:
-            self.ids_seen.add(item['supporter_name'][0])
+        # print(" my type is %s" %type(item).__name__)
+        item_type = type(item).__name__
+        # we do dedup for Proj_Owner_Item and proj_Item only, since we need proj_owner appear only once in the proj owner tanle
+        # even the owner has multiple projs
+        if item_type != "Proj_Owner_Item" and item_type != "Proj_Item":
             return item
-			
+        elif item_type == "Proj_Owner_Item":
+            if item['proj_owner_proj_id'][0] in self.Proj_ids_seen_for_Proj_Owner_table:
+                raise DropItem("Duplicate proj owner item found: %s" % item)
+            else:
+                self.Proj_ids_seen_for_Proj_Owner_table.add(item['proj_owner_proj_id'][0])
+                return item
+        elif item_type == "Proj_Item":
+            if item['proj_id'][0] in self.Proj_ids_seen_for_Proj_table:
+                raise DropItem("Duplicate proj item found: %s" % item)
+            else:
+                self.Proj_ids_seen_for_Proj_table.add(item['proj_id'][0])
+                return item
+
 class MySQLStorePipeline(object):
 	def __init__(self):
 		"""
