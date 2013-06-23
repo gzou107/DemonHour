@@ -13,7 +13,7 @@ class DemoSpider(CrawlSpider):
 	name = 'DemoHourSpider'
 	domain = ['demohour.com']
 	start_urls = [
-	'http://www.demohour.com/projects/320084'
+	'http://www.demohour.com/projects/318262'
 	]
 	# , 'http://www.demohour.com/projects/317769']
 	# SgmlLinkExtractor(allow=('demohour.com/projects/[0-9]+/backers'))
@@ -21,9 +21,9 @@ class DemoSpider(CrawlSpider):
 	# http://www.demohour.com/projects/317272
 	# backers_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers',), deny=('page=1$',))
 	# 			supporter_name = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()").extract()
-	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/320084/backers?',), deny=('page=1$',) )
+	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers?',), deny=('page=1$',) )
 	# '/projects/309168$', '/projects/320084$', '/projects/319703$'
-	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/320084',), deny=('page=1$',) )
+	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/318262',), deny=('page=1$',) )
 	# proj_sidebar_funding = SgmlLinkExtractor(allow=('/projects/318262/posts$',), )
 	
 	rules = (	
@@ -248,6 +248,7 @@ class DemoSpider(CrawlSpider):
 				print "supporter support time", supporter['supporter_support_time']
 				print "supporter support amount", supporter['supporter_support_amount'] 
 				print "supporter support total proj count", supporter['supporter_total_support_proj']
+				supporter['supporter_proj_id'] =  PROJ_ID
 				yield supporter
 		# end of section of donation table
 		##################################################################################################################

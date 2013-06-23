@@ -103,7 +103,7 @@ class Proj_Owner_Item(Item):
 	proj_owner_own_proj_count = Field()
 	proj_owner_support_proj_count = Field()
 
-	
+"""	
 class proj_sidebar_Funding(Item):
 	#section of proj sidebar funding
 	proj_sidebar_money_raised_num_t = Field()
@@ -112,6 +112,7 @@ class proj_sidebar_Funding(Item):
 	proj_sidebar_number_days_1 = Field()
 	proj_sidebar_number_days_m = Field()
 	proj_sidebar_number_days_r = Field()
+"""
 	
 class DemohourItem(Item):
 	###################################################################################################################################
