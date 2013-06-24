@@ -26,7 +26,7 @@ class Proj_Item(Item):
 	proj_leftover_time = Field()
 	proj_left_over_time_unit = Field()
 	proj_owner_name = Field()
-	proj_location = Field()	
+	# proj_location = Field()	
 	proj_supporter_count = Field()
 	proj_surfer_count = Field()
 	proj_topic_count = Field()
@@ -71,13 +71,18 @@ class Proj_Supporter(Item):
 class Proj_Topic(Item):
 	###################################################################################################################################
 	# section of Topic table
-	# (topic_proj_id(PK), topic_announcement_count, topic_question_count, topic_up_count, topic_down_count)
+	# (topic_proj_id(PK), topic_total_buzz_count, topic_announcement_count, topic_question_count, topic_up_count, topic_down_count, Proj_Supporter, topic_proj_category)
 	###################################################################################################################################
 	topic_proj_id = Field() # same as proj_id
+	topic_total_buzz_count = Field()
 	topic_announcement_count = Field()
 	topic_question_count = Field()
 	topic_up_count = Field()
 	topic_down_count = Field()
+	topic_proj_category = Field()
+	topic_proj_owner_name = Field()	
+	topic_proj_location = Field()
+
 	
 class Proj_Incentive_Options(Item):
 	###################################################################################################################################	

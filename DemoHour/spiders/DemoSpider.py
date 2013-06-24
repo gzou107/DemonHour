@@ -1,6 +1,6 @@
 from scrapy.spider import BaseSpider
 from scrapy.selector import HtmlXPathSelector
-from DemoHour.items import DemohourItem, Proj_Item, Proj_Owner_Item, Proj_Incentive_Options, Proj_Supporter
+from DemoHour.items import Proj_Item, Proj_Owner_Item, Proj_Supporter, Proj_Topic, Proj_Incentive_Options
 from scrapy.http.request import Request
 
 
@@ -22,30 +22,23 @@ class DemoSpider(CrawlSpider):
 	# http://www.demohour.com/projects/317272
 	# backers_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers',), deny=('page=1$',))
 	# 			supporter_name = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()").extract()
-	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers?',), deny=('page=1$',) )
-	# '/projects/309168$', '/projects/320084$', '/projects/319703$'
-	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/318262',), deny=('page=1$',) )
+	# deny=('page=1$',)
+	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers?',),deny=('page=1$',),  )
+	# '/projects/309168$', '/projects/320084$', '/projects/319703$'  deny=('page=1$',)
+	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/318262',),deny=('page=1$',) )
 	# proj_sidebar_funding = SgmlLinkExtractor(allow=('/projects/318262/posts$',), )
 	
 	rules = (	
 		# Extract link matching 'backers?page= and parse them with the spider's method, parse_one_supporters_page
 		# allow=('backers?page=')
+		Rule(backers_table_extractor, callback='parse_backers_links', follow = True), # This must comes before next one in order to extract all the backer information
 		Rule(proj_table_extractor, callback = 'parse_proj_info',follow = False),
-		Rule(backers_table_extractor, callback='parse_backers_links', follow = True),
+
 		# Rule(proj_sidebar_funding, callback = 'parse_sidebar_funding',follow = False),
 		# Extract link matching 
 		)
 	
-	def parse_backers_links(self, response):
-		hxs = HtmlXPathSelector(response)
-		
-		current_page = hxs.select("//div[@class='ui-pagination-current']/ul/li/a/@href")
-		
-		if not not current_page:
-			yield Request(current_page[0], self.parse_one_supporters_page)
 
-		for item in self.parse_one_supporters_page(response):
-			yield item
 		
 		
 	def add_url_prefix(self, url):
@@ -68,7 +61,8 @@ class DemoSpider(CrawlSpider):
 		proj_url = hxs.select("//div[@class='ui-tab']/div[@class='ui-tab-top']/h1/a/@href").extract()		
 		if len(proj_url) != 1:
 			self.log("Parse the proj url error. %s" %response.url)
-		proj['proj_url'] = self.add_url_prefix(proj_url[0])
+		else:
+			proj['proj_url'] = self.add_url_prefix(proj_url[0])
 		
 		# one very important id -->Proj_Id
 		PROJ_ID = proj_url[0].split('/')
@@ -95,10 +89,6 @@ class DemoSpider(CrawlSpider):
 				if len(projs_sidebar_funding) == 0:
 					projs_sidebar_funding = hxs.select("//div[@class='sidebar-failure']")
 					
-		if len(projs_sidebar_funding) != 1:
-			self.log("Parse side bar funding error at url %s" %response.url)
-			print "Parse side bar funding error at url %s" %response.url
-			
 		if(len(projs_sidebar_funding) != 1):
 			self.log("Parse the proj table error. %s" %response.url)
 			print "Parse the proj table error. %s" %response.url
@@ -276,8 +266,60 @@ class DemoSpider(CrawlSpider):
 		# end of section of donation table
 		##################################################################################################################
 		
+				###################################################################################################################################
+		# section of Topic table
+		# (topic_proj_id(PK), topic_total_buzz_count, topic_announcement_count, topic_question_count, topic_up_count, topic_down_count, topic_proj_category, topic_proj_location )
+		###################################################################################################################################
+		
+		projs_topic = hxs.select("//div[@class='projects-home-left']")
+		if len(projs_topic) == 1:
+			#self.log("Parse the topic at the end of the page error at url = %s" %response.url)
+		#else:
+			proj_topic = Proj_Topic()
+			
+			proj_topic['topic_proj_id'] = PROJ_ID
+			
+			# get the topic_total_buzz_count
+			topic_total_buzz_count = projs_topic.select(".//li/a[@id='filter_all']/span/text()").extract()
+			if len(topic_total_buzz_count) != 1:
+				self.log("Parse topic_total_buzz_count error at url = %s" %response.url)
+			else:
+				proj_topic['topic_total_buzz_count'] = topic_total_buzz_count[0]
+		
+			topic_all_count =  projs_topic.select(".//li/a[@date-remote='true']/span/text()").extract()
+			if len(topic_all_count) < 5:
+				self.log("Parse other buzz count error at url = %s" %response.url)
+			else:
+				proj_topic['topic_announcement_count'] = topic_all_count[1]
+				proj_topic['topic_question_count'] = topic_all_count[2]
+				proj_topic['topic_up_count'] = topic_all_count[3]
+				proj_topic['topic_down_count'] = topic_all_count[4]			
+		
+			# now we will get the proj tags, e.g., category, location
+			projs_tag = hxs.select(".//div[@class='projects-home-left-seat']/a[@target='_blank']/text()").extract()
+			if len(projs_tag) !=  3:
+				self.log("Parse proj tag error at url = %s" %response.url)
+			else:
+				proj_topic['topic_proj_category'] = projs_tag[0]
+				proj_topic['topic_proj_owner_name'] = projs_tag[1]
+				proj_topic['topic_proj_location'] = projs_tag[2]
+			
+			yield proj_topic
+		
 		# yield item
 		
+	def parse_backers_links(self, response):
+		hxs = HtmlXPathSelector(response)
+		
+		current_page = hxs.select("//div[@class='ui-pagination-current']/ul/li/a/@href")
+		# current_page = hxs.select("//div[@class='ui-pagination-next']/ul/li/a/@href")
+
+		if not not current_page:
+			yield Request(current_page[0], self.parse_one_supporters_page)
+
+		for item in self.parse_one_supporters_page(response):
+			yield item
+			
 	def parse_one_supporters_page(self, response):
 		
 		hxs = HtmlXPathSelector(response)
@@ -285,9 +327,9 @@ class DemoSpider(CrawlSpider):
 		# avoid double parse here???
 		backer_url = re.search('[0-9]+', response.url)
 		PROJ_ID = -1
-		if backer_url == None:
-			self.log('parse the proj_id in backer page error in %s' %response.url)
-		else:
+		if backer_url != None:
+		#	self.log('parse the proj_id in backer page error in %s' %response.url)
+		#else:
 			PROJ_ID = backer_url.group(0)
 			
 		backers = hxs.select("//div[@class='projects-backers-left']/div[@class='supporters']")

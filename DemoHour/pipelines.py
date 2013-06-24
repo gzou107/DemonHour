@@ -97,7 +97,7 @@ class MultiCSVItemPipeline(object):
 	This class is used to persistent different items into differnet CSV files per its type
 	TBD: we will write another pipeline which will save the results into DB after we can verify that the scrapy works
 	"""
-	SaveTypes = ['Proj_Owner', 'Proj', 'Proj_Supporter']
+	SaveTypes = ['Proj', 'Proj_Owner', 'Proj_Topic', 'Proj_Supporter']
 	CSVDir = 'C:\\laopo\\DemonHour\\'
 	scrapyTime = time.localtime()
 	def item_type(self, item):
