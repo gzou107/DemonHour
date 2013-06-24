@@ -25,7 +25,7 @@ class DemoSpider(CrawlSpider):
 	# deny=('page=1$',)
 	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers?',),deny=('page=1$',),  )
 	# '/projects/309168$', '/projects/320084$', '/projects/319703$'  deny=('page=1$',)
-	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/318262',),deny=('page=1$',) )
+	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/318262$',),deny=('page=1$',) )
 	# proj_sidebar_funding = SgmlLinkExtractor(allow=('/projects/318262/posts$',), )
 	
 	rules = (	
@@ -154,7 +154,7 @@ class DemoSpider(CrawlSpider):
 			elif len(proj_leftover_time_units) == 2:
 				proj['proj_left_over_time_unit'] = proj_leftover_time_units[1]
 			else:
-				self.log("Parse proj left over time error. %s" %response.url)
+				self.log("Can not parse proj left over time at url=%s" %response.url)
 				print "Parse proj left over time error. %s" %response.url
 		
 		# get proj_owner information
@@ -286,7 +286,7 @@ class DemoSpider(CrawlSpider):
 			else:
 				proj_topic['topic_total_buzz_count'] = topic_total_buzz_count[0]
 		
-			topic_all_count =  projs_topic.select(".//li/a[@date-remote='true']/span/text()").extract()
+			topic_all_count =  projs_topic.select(".//li/a[@data-remote='true']/span/text()").extract()
 			if len(topic_all_count) < 5:
 				self.log("Parse other buzz count error at url = %s" %response.url)
 			else:
