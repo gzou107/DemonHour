@@ -307,6 +307,52 @@ class DemoSpider(CrawlSpider):
 			yield proj_topic
 		
 		# yield item
+		###################################################################################################################################	
+		# section of incentive table
+		# (incentive_proj_id(PK), incentive_id(PK), incentive_expect_support_amount, incentive_current_supporter_count, incentive_total_allowable_supporter_count,
+		#   incentive_description, incentive_reward_shipping_method, incentive_reward_shipping_time)
+		###################################################################################################################################	
+		projs_reward_options = hxs.select("//div[@class='reward-options']/ul")
+		rewards = []
+		firstIncentive = True
+		for p in projs_reward_options:
+			reward = Proj_Incentive_Options()
+			
+			reward['incentive_proj_id'] = PROJ_ID
+			
+			# get incentive_expect_support_amount
+			incentive_expect_support_amount = p.select(".//li[@class='support-amount']/text()[2]").extract()
+			print "support amount: ", incentive_expect_support_amount
+			reward['incentive_expect_support_amount'] = incentive_expect_support_amount
+			
+			# get incentive_current_supporter_count
+			incentive_current_supporter_count = p.select(".//li[@class='support-amount']/span/text()").extract()
+			print "supporter number:", incentive_current_supporter_count
+			reward['incentive_current_supporter_count'] = incentive_current_supporter_count
+			
+			# get incentive_total_allowable_supporter_count, if any
+			incentive_total_allowable_supporter_count = p.select(".//li[@class='supporter-number']/div[@class='supporter-limit']/p/text()").extract()
+			if len(incentive_total_allowable_supporter_count) == 1:
+				quote = reward.clean_total_allowable_supporter_count(incentive_total_allowable_supporter_count[0])
+				if len(quote) >= 1:
+					reward['incentive_total_allowable_supporter_count'] = quote[0]
+			
+			# get incentive_description,
+			incentive_description = p.select(".//li[@class='returns-contents']/p/text()").extract()
+			reward['incentive_description'] = incentive_description
+			
+			# get incentive_reward_shipping_method, if any
+			incentive_reward_shipping_method = p.select(".//li[@class='returns-contents-time']/p/text()").extract()
+			reward['incentive_reward_shipping_method'] = incentive_reward_shipping_method
+			
+			# get incentive_reward_shipping_time
+			incentive_reward_shipping_time = p.select(".//li[@class='returns-contents-time']/p/text()").extract()
+			# item['projs_rewardOptions'].extend(reward)
+			rewars.append(reward)
+		
+		for reward in rewards:
+			yield reward
+		"""
 		
 	def parse_backers_links(self, response):
 		hxs = HtmlXPathSelector(response)
@@ -350,7 +396,7 @@ class DemoSpider(CrawlSpider):
 			#print "supporter_support_time ", supporter_support_time
 			#print "supporter total support", supporter_support_amount
 			item['supporter_name'] = supporter_name
-			item['supporter_url'] = item.clean_supporter_url(supporter_url[0])
+			item['supporter_url'] = (supporter_url[0])
 			item['supporter_icon'] = item.clean_supporter_icon(supporter_icon[0])
 			item['supporter_support_time']= item.clean_supporter_support_time(supporter_support_time[0])
 			item['supporter_support_amount'] = supporter_support_amount

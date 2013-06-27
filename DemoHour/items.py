@@ -87,14 +87,22 @@ class Proj_Topic(Item):
 class Proj_Incentive_Options(Item):
 	###################################################################################################################################	
 	# section of incentive table
-	# (incentive_proj_id(PK), incentive_id(PK), incentive_amount, incentive_number_of_limited_donor,incentive_description)
+	# (incentive_proj_id(PK), incentive_id(PK), incentive_expect_support_amount, incentive_current_supporter_count， incentive_total_allowable_supporter_count,
+	#   incentive_description， incentive_reward_shipping_method， incentive_reward_shipping_time)
 	###################################################################################################################################	
 	incentive_proj_id = Field()
 	incentive_id = Field()
-	incentive_amount = Field()
-	incentive_number_of_limited_donor = Field()
+	incentive_expect_support_amount = Field()
+	incentive_current_supporter_count = Field()
+	incentive_total_allowable_supporter_count = Field() # optional
 	incentive_description = Field()
+	incentive_reward_shipping_method = Field()
+	incentive_reward_shipping_time = Field()
 	
+	def clean_total_allowable_supporter_count(self, allowable_quote):
+		res = res.findall('[\d]+', allowable_quote)
+		return res
+		
 class Proj_Owner_Item(Item):
 	###################################################################################################################################	
 	# section of proj_owner_table
