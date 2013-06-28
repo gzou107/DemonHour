@@ -84,11 +84,11 @@ class Proj_Topic(Item):
 	topic_proj_location = Field()
 
 	
-class Proj_Incentive_Options(Item):
+class Proj_Incentive_Options_Item(Item):
 	###################################################################################################################################	
 	# section of incentive table
-	# (incentive_proj_id(PK), incentive_id(PK), incentive_expect_support_amount, incentive_current_supporter_count， incentive_total_allowable_supporter_count,
-	#   incentive_description， incentive_reward_shipping_method， incentive_reward_shipping_time)
+	# (incentive_proj_id(PK), incentive_id(PK), incentive_expect_support_amount, incentive_current_supporter_count, incentive_total_allowable_supporter_count,
+	#   incentive_description, incentive_reward_shipping_method, incentive_reward_shipping_time)
 	###################################################################################################################################	
 	incentive_proj_id = Field()
 	incentive_id = Field()
@@ -100,7 +100,27 @@ class Proj_Incentive_Options(Item):
 	incentive_reward_shipping_time = Field()
 	
 	def clean_total_allowable_supporter_count(self, allowable_quote):
-		res = res.findall('[\d]+', allowable_quote)
+		res = re.findall('[\d]+', allowable_quote)
+		return res
+	
+	def clean_reward_shipping_time(self, shipping_info):
+		res = re.findall('[\d]+', shipping_info)
+		return res
+		
+	def clean_current_supporter_count(self, supporter_count):
+		res = re.findall('[\d]+', supporter_count)
+		return res
+		
+	def clean_expect_support_amount(self, support_count):
+		res = re.findall('[\d]+', support_count)
+		if len(res) == 1:
+			return int(res[0])
+		if len(res) == 2:
+			count = 1000* int(res[0]) + int(res[1])
+			return count
+		if len(res) == 3:
+			count = 1000 * 1000 * int(res[0]) + 1000 * int(res[1]) + res[2]
+			return count
 		return res
 		
 class Proj_Owner_Item(Item):

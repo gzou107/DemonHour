@@ -1,6 +1,6 @@
 from scrapy.spider import BaseSpider
 from scrapy.selector import HtmlXPathSelector
-from DemoHour.items import Proj_Item, Proj_Owner_Item, Proj_Supporter, Proj_Topic, Proj_Incentive_Options
+from DemoHour.items import Proj_Item, Proj_Owner_Item, Proj_Supporter, Proj_Topic, Proj_Incentive_Options_Item
 from scrapy.http.request import Request
 
 
@@ -308,7 +308,7 @@ class DemoSpider(CrawlSpider):
 		
 		# yield item
 		###################################################################################################################################	
-		# section of incentive table
+		# section of incentive/reward table
 		# (incentive_proj_id(PK), incentive_id(PK), incentive_expect_support_amount, incentive_current_supporter_count, incentive_total_allowable_supporter_count,
 		#   incentive_description, incentive_reward_shipping_method, incentive_reward_shipping_time)
 		###################################################################################################################################	
@@ -316,19 +316,25 @@ class DemoSpider(CrawlSpider):
 		rewards = []
 		firstIncentive = True
 		for p in projs_reward_options:
-			reward = Proj_Incentive_Options()
+			reward = Proj_Incentive_Options_Item()
 			
 			reward['incentive_proj_id'] = PROJ_ID
 			
 			# get incentive_expect_support_amount
 			incentive_expect_support_amount = p.select(".//li[@class='support-amount']/text()[2]").extract()
 			print "support amount: ", incentive_expect_support_amount
-			reward['incentive_expect_support_amount'] = incentive_expect_support_amount
+			if len(incentive_expect_support_amount) == 1:
+				support_amount = reward.clean_expect_support_amount(incentive_expect_support_amount[0])
+				if len(support_amount) == 1:
+					reward['incentive_expect_support_amount'] = support_amount[0]
 			
 			# get incentive_current_supporter_count
 			incentive_current_supporter_count = p.select(".//li[@class='support-amount']/span/text()").extract()
 			print "supporter number:", incentive_current_supporter_count
-			reward['incentive_current_supporter_count'] = incentive_current_supporter_count
+			if len(incentive_current_supporter_count) == 1:
+				count= reward.clean_current_supporter_count(incentive_current_supporter_count[0])
+				if len(count) == 1:
+					reward['incentive_current_supporter_count'] = count[0]
 			
 			# get incentive_total_allowable_supporter_count, if any
 			incentive_total_allowable_supporter_count = p.select(".//li[@class='supporter-number']/div[@class='supporter-limit']/p/text()").extract()
@@ -342,17 +348,22 @@ class DemoSpider(CrawlSpider):
 			reward['incentive_description'] = incentive_description
 			
 			# get incentive_reward_shipping_method, if any
-			incentive_reward_shipping_method = p.select(".//li[@class='returns-contents-time']/p/text()").extract()
-			reward['incentive_reward_shipping_method'] = incentive_reward_shipping_method
+			incentive_reward_shipping_time_and_method = p.select(".//li[@class='returns-contents-time']/p/text()").extract()
+			if len(incentive_reward_shipping_time_and_method) == 1:
+				shipping_time = reward.clean_reward_shipping_time(incentive_reward_shipping_time_and_method[0])
+				reward['incentive_reward_shipping_time'] = shipping_time
+			elif len(incentive_reward_shipping_time_and_method) == 2:
+				shipping_method = incentive_reward_shipping_time_and_method[0]
+				reward['incentive_reward_shipping_method'] = shipping_method
+				reward['incentive_reward_shipping_time'] = reward.clean_reward_shipping_time(incentive_reward_shipping_time_and_method[1])
 			
-			# get incentive_reward_shipping_time
-			incentive_reward_shipping_time = p.select(".//li[@class='returns-contents-time']/p/text()").extract()
-			# item['projs_rewardOptions'].extend(reward)
-			rewars.append(reward)
-		
+			rewards.append(reward)
+			
 		for reward in rewards:
 			yield reward
-		"""
+		###################################################################################################################################	
+		# end of table incentive/reward
+		###################################################################################################################################	
 		
 	def parse_backers_links(self, response):
 		hxs = HtmlXPathSelector(response)
