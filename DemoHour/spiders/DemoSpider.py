@@ -18,7 +18,14 @@ class DemoSpider(CrawlSpider):
 	'http://www.demohour.com/projects/318807',
 	'http://www.demohour.com/projects/319076',
 	'http://www.demohour.com/projects/317898',
-	# 'http://www.demohour.com/', 319076, 317898
+	'http://www.demohour.com/projects/319276',
+	'http://www.demohour.com/projects/319178',
+	'http://www.demohour.com/projects/319106',
+	'http://www.demohour.com/projects/317125',	
+	'http://www.demohour.com/projects/320867',		
+	'http://www.demohour.com/projects/318508',	
+	'http://www.demohour.com/projects/318747',
+	# 'http://www.demohour.com/', 319076, 317898, 319276, 319178, 319106, 317125, 320867, 318508, 318747
 	# 'http://www.demohour.com/projects/discover/0_0_0_5'
 	]
 	# , 'http://www.demohour.com/projects/317769']
@@ -32,8 +39,8 @@ class DemoSpider(CrawlSpider):
 	# backers_table_extractor = SgmlLinkExtractor(allow=('/projects/[\d]+/backers?',),deny=('page=1$',),  )
 	# users_table_extractor = SgmlLinkExtractor(allow=('/[\d]+$',),deny=('page=1$',),  )
 	
-	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/317898',),deny=('page=1$',) )
-	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/317898/backers?',),deny=('page=1$',),  )
+	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/318747',),deny=('page=1$',) )
+	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318747/backers?',),deny=('page=1$',),  )
 	# users_table_extractor = SgmlLinkExtractor(allow=('/[\d7]+$',),deny=('page=1$',),  )
 	# '/projects/309168$', '/projects/320084$', '/projects/319703$'  deny=('page=1$',)
 	# proj_sidebar_funding = SgmlLinkExtractor(allow=('/projects/318262/posts$',), )
@@ -69,10 +76,12 @@ class DemoSpider(CrawlSpider):
 		proj_url = hxs.select("//div[@class='ui-tab']/div[@class='ui-tab-top']/h1/a/@href").extract()		
 		if len(proj_url) != 1:
 			self.log("Parse the proj url error. %s" %response.url)
+			return
 		else:
 			proj['proj_url'] = self.add_url_prefix(proj_url[0])
 		
 		# one very important id -->Proj_Id
+		# if len(
 		PROJ_ID = proj_url[0].split('/')
 		if len(PROJ_ID) != 3:
 			self.log("Parse Proj_id error. %s" %response.url)
@@ -103,13 +112,16 @@ class DemoSpider(CrawlSpider):
 		else:
 			# get proj_funding_target		
 			p = projs_sidebar_funding[0]
-			proj_funding_target = p.select(".//div[@class='sidebar-money-raised-num-t']").select(".//b/text()").extract()
+			proj_funding_target = p.select(".//div[@class='sidebar-money-raised-num-t']/b/text()").extract()
 			print proj_funding_target
-			proj['proj_funding_target'] = proj_funding_target
-			# get proj_current_funding_amount	
-			proj_current_funding_amount = p.select(".//div[@class='sidebar-money-raised-num']").select(".//b/text()").extract()
-			print proj_current_funding_amount
-			proj['proj_current_funding_amount'] = proj_current_funding_amount
+			if len(proj_funding_target) == 1:
+				proj['proj_funding_target'] = proj.clean_proj_funding_target(proj_funding_target[0])
+				
+			# get proj_current_funding_amount				
+			proj_current_funding_amount = p.select(".//div[@class='sidebar-money-raised-num']/b/text()").extract()
+			print proj_current_funding_amount			
+			if len(proj_current_funding_amount) == 1:
+				proj['proj_current_funding_amount'] = proj.clean_proj_current_funding_amount(proj_current_funding_amount[0])
 			
 			# get proj_current_funding_percentage	
 			proj_current_funding_percentage = p.select(".//span[@class='sidebar-percentage-progress-span']/text()").extract()
@@ -117,7 +129,7 @@ class DemoSpider(CrawlSpider):
 			if len(proj_current_funding_percentage) != 1:
 				self.log("Parse the proj_current_funding_percentage at url = %s" %response.url)
 			else:
-				percentage = re.search('[0-9]+.[0-9]+', proj_current_funding_percentage[0])
+				percentage = re.search('[\d]+', proj_current_funding_percentage[0])
 				if percentage == None:
 					self.log("Parse the proj_current_funding_percentage at url = %s" %response.url)
 				else:
@@ -230,7 +242,7 @@ class DemoSpider(CrawlSpider):
 				proj_owner['proj_owner_own_proj_count'] = proj_by_post_support_list[0]
 			if len(proj_by_post_support_list) >= 2:
 				proj_owner_own_proj_count = proj_by_post_support_list[1]
-				proj_owner['proj_owner_support_proj_count'] = proj_by_post_support_list[0]
+				proj_owner['proj_owner_support_proj_count'] = proj_by_post_support_list[1]
 			print "proj owner supports:", proj_owner_support_proj_count
 			print "proj owner owns:", proj_owner_own_proj_count
 
@@ -265,6 +277,8 @@ class DemoSpider(CrawlSpider):
 		# end of section of donation table
 		##################################################################################################################
 		
+		# if we want to add the user information table, we will do sth similar to the back table here
+		
 		###################################################################################################################################
 		# section of Topic table
 		# (topic_proj_id(PK), topic_total_buzz_count, topic_announcement_count, topic_question_count, topic_up_count, topic_down_count, topic_proj_category, topic_proj_location )
@@ -298,6 +312,7 @@ class DemoSpider(CrawlSpider):
 			projs_tag = hxs.select(".//div[@class='projects-home-left-seat']/a[@target='_blank']/text()").extract()
 			if len(projs_tag) !=  3:
 				self.log("Parse proj tag error at url = %s" %response.url)
+				return
 			else:
 				proj_topic['topic_proj_category'] = projs_tag[0]
 				proj_topic['topic_proj_owner_name'] = projs_tag[1]
@@ -344,7 +359,8 @@ class DemoSpider(CrawlSpider):
 			
 			# get incentive_description,
 			incentive_description = p.select(".//li[@class='returns-contents']/p/text()").extract()
-			reward['incentive_description'] = incentive_description
+			if len(incentive_description) >= 1:
+				reward['incentive_description'] = reward.clean_incentive_descriptions(incentive_description[0])
 			
 			# get incentive_reward_shipping_method, if any
 			incentive_reward_shipping_time_and_method = p.select(".//li[@class='returns-contents-time']/p/text()").extract()
@@ -394,7 +410,7 @@ class DemoSpider(CrawlSpider):
 		for backer in backers:
 			item = Proj_Supporter()			
 			supporter_name = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()").extract()
-			supporter_url = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/@href").extract()
+			supporter_id = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/@href").extract()
 			supporter_icon = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/div[@class='icon-sun-ms']/a/text()").extract()
 			supporter_total_support_proj= backer.select(".//div[@class='supportersmeta']/text()[4]").extract()
 			supporter_support_time = backer.select(".//div[@class='supportersmeta']/text()[2]").extract()
@@ -406,8 +422,8 @@ class DemoSpider(CrawlSpider):
 			#print "supporter_support_time ", supporter_support_time
 			#print "supporter total support", supporter_support_amount
 			item['supporter_name'] = supporter_name
-			if len(supporter_url) == 1:
-				item['supporter_url'] = (supporter_url[0])
+			if len(supporter_id) == 1:
+				item['supporter_id'] = item.clean_supporter_id(supporter_id[0])
 			if len(supporter_icon) == 1:
 				item['supporter_icon'] = item.clean_supporter_icon(supporter_icon[0])
 			if len(supporter_support_time) == 1:

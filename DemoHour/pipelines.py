@@ -119,7 +119,8 @@ class MultiCSVItemPipeline(object):
 	def spider_opened(self, spider):
 		scrapyTime = time.localtime()
 		time_postfix = '_' + str( scrapyTime.tm_year) + '_' + str(scrapyTime.tm_mon) + '_' + str(scrapyTime.tm_mday )+ '_' + str(scrapyTime.tm_hour) +'_' + str( scrapyTime.tm_min)
-		self.files = dict([ ( name, open(self.CSVDir + name + time_postfix + '.csv', 'w+b')) for name in self.SaveTypes])
+		# self.files = dict([ ( name, open(self.CSVDir + name + time_postfix + '.csv', 'r+')) for name in self.SaveTypes])
+		self.files = dict([ ( name, open(self.CSVDir + name  + '.csv', 'w+b')) for name in self.SaveTypes])
 		self.exporters = dict([ (name, CsvItemExporter(self.files[name], include_headers_line = True, encoding = 'utf-8')) for name in self.SaveTypes])
 		[e.start_exporting() for e in self.exporters.values()]
 		

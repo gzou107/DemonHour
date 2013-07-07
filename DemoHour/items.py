@@ -31,10 +31,34 @@ class Proj_Item(Item):
 	proj_surfer_count = Field()
 	proj_topic_count = Field()
 	
+	def clean_proj_funding_target(self, support_count):
+		return self.__clean_money(support_count)
+
+	def clean_proj_current_funding_amount(self, support_count):
+		return self.__clean_money(support_count)
+
+	def __clean_money(self, amount):
+		res = re.findall('[\d]+', amount)
+		if len(res) == 1:
+			return int(res[0])
+		if len(res) == 2:
+			count = 1000* int(res[0]) + int(res[1])
+			return count
+		if len(res) == 3:
+			count = 1000 * 1000 * int(res[0]) + 1000 * int(res[1]) + int(res[2])
+			return count
+		if len(res) == 4:
+			count = 1000 * 1000 * 1000 * int(res[0]) + 1000 * 1000 * int(res[1]) + 1000 * int(res[2]) + int(res[3])
+			return count
+		if len(res) == 5:
+			count = 1000 * 1000 * 1000 * 1000 * int(res[0]) + 1000 * 1000 * 1000 * int(res[1]) + 1000 * 1000 * int(res[2]) + 1000 * int(res[3]) + int(res[4])
+			return count			
+		return -1 # parse error.		
+	
 class Proj_Supporter(Item):
 	supporter_proj_id = Field()
 	supporter_name = Field()
-	supporter_url = Field()           # this is equivalent og supporter_id
+	supporter_id = Field()           # this is equivalent og supporter_id
 	supporter_icon = Field()
 	supporter_support_time = Field()
 	supporter_support_amount = Field()
@@ -59,6 +83,15 @@ class Proj_Supporter(Item):
 		"""
 		time = support_time[1:-5]
 		return time
+	
+	def clean_supporter_id(self, supporter_id):
+		"""
+		clean the supporter id
+		"""
+		a = re.search('[\d]+', supporter_id)
+		if a != None:
+			return a.group(0)
+		return -1
 	
 	def clean_supporter_total_support_proj(self, total_support_proj_cnt):
 		"""
@@ -123,6 +156,9 @@ class Proj_Incentive_Options_Item(Item):
 	def clean_current_supporter_count(self, supporter_count):
 		res = re.findall('[\d]+', supporter_count)
 		return res
+	
+	def clean_incentive_descriptions(self, incentive_descriptions):
+		return incentive_descriptions[:100]
 		
 	def clean_expect_support_amount(self, support_count):
 		res = re.findall('[\d]+', support_count)
