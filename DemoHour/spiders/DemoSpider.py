@@ -1,6 +1,6 @@
 from scrapy.spider import BaseSpider
 from scrapy.selector import HtmlXPathSelector
-from DemoHour.items import Proj_Item, Proj_Owner_Item, Proj_Supporter, Proj_Topic, Proj_Incentive_Options_Item
+from DemoHour.items import Proj_Item, Proj_Owner_Item, Proj_Supporter, Proj_Topic, Proj_Incentive_Options_Item, User_Item
 from scrapy.http.request import Request
 
 
@@ -14,26 +14,38 @@ class DemoSpider(CrawlSpider):
 	name = 'DemoHourSpider'
 	domain = ['demohour.com']
 	start_urls = [
-	'http://www.demohour.com/projects/318262'
+	'http://www.demohour.com/projects/318262',
+	'http://www.demohour.com/projects/318807',
+	'http://www.demohour.com/projects/319076',
+	'http://www.demohour.com/projects/317898',
+	# 'http://www.demohour.com/', 319076, 317898
+	# 'http://www.demohour.com/projects/discover/0_0_0_5'
 	]
 	# , 'http://www.demohour.com/projects/317769']
 	# SgmlLinkExtractor(allow=('demohour.com/projects/[0-9]+/backers'))
 	# 318262 320144
 	# http://www.demohour.com/projects/317272
 	# backers_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers',), deny=('page=1$',))
-	# 			supporter_name = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()").extract()
+	# supporter_name = backer.select(".//div[@class='supportersmeta']/div[@class='supportersmeta-t']/a[@class='supportersmeta-t-a']/text()").extract()
 	# deny=('page=1$',)
-	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers?',),deny=('page=1$',),  )
+	# proj_table_extractor = SgmlLinkExtractor(allow=('/projects/[\d]+$',),deny=('page=1$',) )
+	# backers_table_extractor = SgmlLinkExtractor(allow=('/projects/[\d]+/backers?',),deny=('page=1$',),  )
+	# users_table_extractor = SgmlLinkExtractor(allow=('/[\d]+$',),deny=('page=1$',),  )
+	
+	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/317898',),deny=('page=1$',) )
+	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/317898/backers?',),deny=('page=1$',),  )
+	# users_table_extractor = SgmlLinkExtractor(allow=('/[\d7]+$',),deny=('page=1$',),  )
 	# '/projects/309168$', '/projects/320084$', '/projects/319703$'  deny=('page=1$',)
-	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/318262$',),deny=('page=1$',) )
 	# proj_sidebar_funding = SgmlLinkExtractor(allow=('/projects/318262/posts$',), )
 	
 	rules = (	
 		# Extract link matching 'backers?page= and parse them with the spider's method, parse_one_supporters_page
 		# allow=('backers?page=')
-		Rule(backers_table_extractor, callback='parse_backers_links', follow = True), # This must comes before next one in order to extract all the backer information
-		Rule(proj_table_extractor, callback = 'parse_proj_info',follow = False),
 
+				
+		Rule(backers_table_extractor, callback='parse_backers_links', follow = True), # This must comes before next one in order to extract all the backer information
+		Rule(proj_table_extractor, callback = 'parse_proj_info', follow = True),
+		# Rule(users_table_extractor, callback='parse_users', follow = True),
 		# Rule(proj_sidebar_funding, callback = 'parse_sidebar_funding',follow = False),
 		# Extract link matching 
 		)
@@ -45,10 +57,6 @@ class DemoSpider(CrawlSpider):
 		return "www.demohour.com" + url
 	
 	def parse_proj_info(self, response):
-		"""
-		 maybe we should return a dict and then in the item pipeline, we will handle the processing based on keys
-		 we will also need the persistent strategies now.
-		"""
 		hxs = HtmlXPathSelector(response)
 		
 		##################################################################################################################
@@ -168,15 +176,6 @@ class DemoSpider(CrawlSpider):
 			
 		# get proj_location --> this wil be extracted in another table
 		# reason is this information may not be available at back page, only exist in main page
-		"""
-		projs_locations = hxs.select("//div[@class='projects-home-left-seat']/a[@target='_blank']/text()").extract()
-		if len(projs_locations) != 3:
-			self.log("Parse proj location error. %s" %response.url)
-			print "Parse proj location error. %s" %response.url
-		else:
-			proj['proj_location'] = projs_locations[2]
-		"""
-		
 		yield proj
 		# end of section of proj table
 		##################################################################################################################
@@ -266,7 +265,7 @@ class DemoSpider(CrawlSpider):
 		# end of section of donation table
 		##################################################################################################################
 		
-				###################################################################################################################################
+		###################################################################################################################################
 		# section of Topic table
 		# (topic_proj_id(PK), topic_total_buzz_count, topic_announcement_count, topic_question_count, topic_up_count, topic_down_count, topic_proj_category, topic_proj_location )
 		###################################################################################################################################
@@ -324,9 +323,9 @@ class DemoSpider(CrawlSpider):
 			incentive_expect_support_amount = p.select(".//li[@class='support-amount']/text()[2]").extract()
 			print "support amount: ", incentive_expect_support_amount
 			if len(incentive_expect_support_amount) == 1:
-				support_amount = reward.clean_expect_support_amount(incentive_expect_support_amount[0])
-				if len(support_amount) == 1:
-					reward['incentive_expect_support_amount'] = support_amount[0]
+				reward['incentive_expect_support_amount'] = reward.clean_expect_support_amount(incentive_expect_support_amount[0])
+				# if len(support_amount) == 1:
+				#	reward['incentive_expect_support_amount'] = support_amount[0]
 			
 			# get incentive_current_supporter_count
 			incentive_current_supporter_count = p.select(".//li[@class='support-amount']/span/text()").extract()
@@ -359,12 +358,12 @@ class DemoSpider(CrawlSpider):
 			
 			rewards.append(reward)
 			
-		for reward in rewards:
-			yield reward
 		###################################################################################################################################	
 		# end of table incentive/reward
 		###################################################################################################################################	
-		
+		for reward in rewards:
+			yield reward
+			
 	def parse_backers_links(self, response):
 		hxs = HtmlXPathSelector(response)
 		
@@ -407,11 +406,15 @@ class DemoSpider(CrawlSpider):
 			#print "supporter_support_time ", supporter_support_time
 			#print "supporter total support", supporter_support_amount
 			item['supporter_name'] = supporter_name
-			item['supporter_url'] = (supporter_url[0])
-			item['supporter_icon'] = item.clean_supporter_icon(supporter_icon[0])
-			item['supporter_support_time']= item.clean_supporter_support_time(supporter_support_time[0])
+			if len(supporter_url) == 1:
+				item['supporter_url'] = (supporter_url[0])
+			if len(supporter_icon) == 1:
+				item['supporter_icon'] = item.clean_supporter_icon(supporter_icon[0])
+			if len(supporter_support_time) == 1:
+				item['supporter_support_time']= item.clean_supporter_support_time(supporter_support_time[0])
 			item['supporter_support_amount'] = supporter_support_amount
-			item['supporter_total_support_proj'] = item.clean_supporter_total_support_proj(supporter_total_support_proj[0])
+			if len(supporter_total_support_proj) == 1:
+				item['supporter_total_support_proj'] = item.clean_supporter_total_support_proj(supporter_total_support_proj[0])
 			item['supporter_proj_id'] = PROJ_ID
 			items.append(item)
 
@@ -529,4 +532,56 @@ class DemoSpider(CrawlSpider):
 			
 		return items
 		"""
+	
+	def parse_user(self, responser):
+		"""
+		Parse user page and populate the user information, and the refer page comes from one of the project, and it retures first the user information,
+		and also continue yield the project request.
+		"""
+		###################################################################################################################################	
+		# section of user table
+		# (user_id, user_name, user_join_time, user_support_proj_count, user_own_proj_count, user_star_level)
+		# this models the regestered user, we do not track the detail proj information, but only the count information, as the support information is kept in the supporter table
+		# and ownership information is kept in the proj_owner_table
+		###################################################################################################################################	
+		hxs = HtmlXPathSelector(response)
+
+		user = User_Item()
 		
+		backer_url = re.search('[0-9]+', response.url)
+		PROJ_ID = -1
+		if backer_url != None:
+			user['user_id'] = backer_url.group(0)
+		
+		# get the join time
+		user_profile = hxs.select("//div[@class='profile-bio']")
+		
+		# handle the profile section
+		if len(user_profile) == 1:
+			p = user_profile[0]
+			user_name_tag = p.select(".//div[@class='profile-bio-r']/strong/text()").extract()
+			if len(user_name_tag) == 1:
+				user['user_name'] = user_name_tag[0]
+				
+			user_star_level = p.select(".//div[@class='profile-bio-r']/div[@class='icon-sun-l']/a/text()").extract()
+			if len(user_star_level) == 1:
+				user['user_star_level'] = user_star_level[0]
+			
+			user_join_time = p.select(".//p[@class='jiaru']/text()").extract()
+			if len(user_join_time) == 1:
+				user['user_join_time'] = user_join_time[0]
+		
+		# now we will handle the supported prjects, caveat, we may have mutiple pages to handle
+		user_proj_count = hxs.select("//ul[@class='topmenutabs']")
+		
+		if len(user_proj_count) == 1:
+			p = user_proj_count[0]
+			user_support_proj_count = p.select(".//li[@class='selected']/a/span/text()").extract()
+			if len(user_support_proj_count) == 1:
+				user['user_support_proj_count'] = user_support_proj_count[0]
+			
+			user_own_proj_count = p.select(".//li/a[@class='select_projects']/span/text()").extarct()
+			if len(user_own_proj_count) == 2:
+				user['user_own_proj_count'] = user_own_proj_count[1]
+	
+		yield user	

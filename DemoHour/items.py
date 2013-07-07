@@ -83,6 +83,19 @@ class Proj_Topic(Item):
 	topic_proj_owner_name = Field()	
 	topic_proj_location = Field()
 
+class User_Item(Item):
+	###################################################################################################################################	
+	# section of incentive table
+	# (user_id, user_join_time, user_support_proj_count, user_own_proj_count, user_star_level)
+	# this models the regestered user, we do not track the detail proj information, but only the count information, as the support information is kept in the supporter table
+	# and ownership information is kept in the proj_owner_table
+	###################################################################################################################################		
+	user_id = Field()
+	user_name = Field()
+	user_join_time = Field()
+	user_support_proj_count = Field()
+	user_own_proj_count = Field()
+	user_star_level = Field()
 	
 class Proj_Incentive_Options_Item(Item):
 	###################################################################################################################################	
@@ -121,7 +134,7 @@ class Proj_Incentive_Options_Item(Item):
 		if len(res) == 3:
 			count = 1000 * 1000 * int(res[0]) + 1000 * int(res[1]) + res[2]
 			return count
-		return res
+		return -1 # parse error.
 		
 class Proj_Owner_Item(Item):
 	###################################################################################################################################	

@@ -24,13 +24,13 @@ class DuplicatesPipeline(object):
     def __init__(self):
         self.Proj_ids_seen_for_Proj_table = set()
         self.Proj_ids_seen_for_Proj_Owner_table = set()
-
+	self.user_ids_seen_for_user_table = set()
+		
     def process_item(self, item, spider):
         # print(" my type is %s" %type(item).__name__)
         item_type = type(item).__name__
-        # we do dedup for Proj_Owner_Item and proj_Item only, since we need proj_owner appear only once in the proj owner tanle
-        # even the owner has multiple projs
-        if item_type != "Proj_Owner_Item" and item_type != "Proj_Item":
+        # we do dedup for Proj_Owner_Item, proj_Item and User_item for now
+        if item_type != "Proj_Owner_Item" and item_type != "Proj_Item" and item_type != "User_Item":
             return item
         elif item_type == "Proj_Owner_Item":
             if item['proj_owner_proj_id'][0] in self.Proj_ids_seen_for_Proj_Owner_table:
@@ -43,6 +43,12 @@ class DuplicatesPipeline(object):
                 raise DropItem("Duplicate proj item found: %s" % item)
             else:
                 self.Proj_ids_seen_for_Proj_table.add(item['proj_id'][0])
+                return item
+        elif item_type == "User_Item":
+            if item['user_id'][0] in self.user_ids_seen_for_user_table:
+                raise DropItem("Duplicate user item found: %s" % item)
+            else:
+                self.user_ids_seen_for_user_table.add(item['user_id'][0])
                 return item
 
 class MySQLStorePipeline(object):
@@ -92,10 +98,12 @@ class MySQLStorePipeline(object):
 		log.err(e)
 		
 import time
+
 class MultiCSVItemPipeline(object):
 	"""
 	This class is used to persistent different items into differnet CSV files per its type
 	TBD: we will write another pipeline which will save the results into DB after we can verify that the scrapy works
+	, 'User_Item'
 	"""
 	SaveTypes = ['Proj', 'Proj_Owner', 'Proj_Topic', 'Proj_Supporter', 'Proj_Incentive_Options']
 	CSVDir = 'C:\\laopo\\DemonHour\\'
