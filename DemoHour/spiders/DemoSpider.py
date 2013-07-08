@@ -8,12 +8,17 @@ from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 from scrapy.contrib.loader import XPathItemLoader
 import re
+import urlparse
+
 from decimal import *
 
 class DemoSpider(CrawlSpider):
 	name = 'DemoHourSpider'
 	domain = ['demohour.com']
 	start_urls = [
+	'http://www.demohour.com/projects/318807',
+	# 'http://www.demohour.com/projects/discover/5_0_0_6?page=1',
+	"""
 	'http://www.demohour.com/projects/318262',
 	'http://www.demohour.com/projects/318807',
 	'http://www.demohour.com/projects/319076',
@@ -25,6 +30,7 @@ class DemoSpider(CrawlSpider):
 	'http://www.demohour.com/projects/320867',		
 	'http://www.demohour.com/projects/318508',	
 	'http://www.demohour.com/projects/318747',
+	"""
 	# 'http://www.demohour.com/', 319076, 317898, 319276, 319178, 319106, 317125, 320867, 318508, 318747
 	# 'http://www.demohour.com/projects/discover/0_0_0_5'
 	]
@@ -39,8 +45,11 @@ class DemoSpider(CrawlSpider):
 	# backers_table_extractor = SgmlLinkExtractor(allow=('/projects/[\d]+/backers?',),deny=('page=1$',),  )
 	# users_table_extractor = SgmlLinkExtractor(allow=('/[\d]+$',),deny=('page=1$',),  )
 	
-	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/318747',),deny=('page=1$',) )
-	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318747/backers?',),deny=('page=1$',),  )
+	#success_proj_extractor = SgmlLinkExtractor(allow=('/projects/318262$',),deny=('page=1$',) )
+	#backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers?',),deny=('page=1$',),  )
+		
+	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/318807',),deny=('page=1$',) )
+	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318807/backers?',),deny=('page=1$',),  )
 	# users_table_extractor = SgmlLinkExtractor(allow=('/[\d7]+$',),deny=('page=1$',),  )
 	# '/projects/309168$', '/projects/320084$', '/projects/319703$'  deny=('page=1$',)
 	# proj_sidebar_funding = SgmlLinkExtractor(allow=('/projects/318262/posts$',), )
@@ -49,19 +58,42 @@ class DemoSpider(CrawlSpider):
 		# Extract link matching 'backers?page= and parse them with the spider's method, parse_one_supporters_page
 		# allow=('backers?page=')
 
-				
+		# Rule(success_proj_extractor, callback='parse_success_proj_entry', follow = True), # This must comes before next one in order to extract all the backer information		
 		Rule(backers_table_extractor, callback='parse_backers_links', follow = True), # This must comes before next one in order to extract all the backer information
+		# Rule(success_proj_extractor, callback='parse_success_proj_entry', follow = True), # This must comes before next one in order to extract all the backer information		
+
 		Rule(proj_table_extractor, callback = 'parse_proj_info', follow = True),
 		# Rule(users_table_extractor, callback='parse_users', follow = True),
 		# Rule(proj_sidebar_funding, callback = 'parse_sidebar_funding',follow = False),
 		# Extract link matching 
 		)
 	
-
+	def parse_success_proj_entry(self, response):
+		hxs = HtmlXPathSelector(response)
 		
-		
+		success_projects = hxs.select("//div[@id='projects']/ul[@class='project-one']/li[@class='project-titile']/a/@href")
+		print "find success projects urls %s" %success_projects
+		for success_project in success_projects:			
+			success_projects_full_url = self.add_url_prefix(success_project.extract())
+			print " we find one success project url, and its url = %s" %success_projects_full_url
+			yield Request(urlparse.urljoin("http://www.demohour.com/",success_project.extract()), callback = self.parse_proj_info)
+			
+			for item in self.parse_proj_info(response):
+				yield item
+			"""
+			for supporter in self.parse_backers_links(response): # we have supporter information here
+				print "supporter name:", supporter['supporter_name']
+				print "supporter url:", supporter['supporter_url']
+				print "supporter icon:", supporter['supporter_icon'] 
+				print "supporter support time", supporter['supporter_support_time']
+				print "supporter support amount", supporter['supporter_support_amount'] 
+				print "supporter support total proj count", supporter['supporter_total_support_proj']
+				supporter['supporter_proj_id'] =  PROJ_ID
+				yield supporter		
+			"""
+			
 	def add_url_prefix(self, url):
-		return "www.demohour.com" + url
+		return "http://www.demohour.com" + url
 	
 	def parse_proj_info(self, response):
 		hxs = HtmlXPathSelector(response)

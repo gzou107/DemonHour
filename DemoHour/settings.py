@@ -22,5 +22,5 @@ ITEM_PIPELINES = [
 	'DemoHour.pipelines.DuplicatesPipeline',
 	'DemoHour.pipelines.MultiCSVItemPipeline',
     # 'DemoHour.pipelines.DuplicatesPipeline',
-	# 'DemoHour.pipelines.MySQLStorePipeline',
+	'DemoHour.pipelines.MySQLStorePipeline',
 ]

@@ -4,16 +4,15 @@
 # See: http://doc.scrapy.org/topics/item-pipeline.html
 from scrapy import signals
 from scrapy.exceptions import DropItem
-
 from scrapy import log
-from twisted.enterprise import adbapi
-
 from scrapy.contrib.exporter import CsvItemExporter
 from scrapy.xlib.pydispatch import dispatcher
 # ref: http://doc.scrapy.org/en/0.14/topics/exporters.html
 
 import time
-# import MySQLdb.cursors
+import datetime
+import MySQLdb.cursors
+from twisted.enterprise import adbapi
 
 class DemohourPipeline(object):
     def process_item(self, item, spider):
@@ -57,44 +56,69 @@ class MySQLStorePipeline(object):
 		hard code db connection string
 		"""
 		self.dbpool = adbapi.ConnectionPool('MySQLdb',
-			db = 'sql56',
+			db = 'demohour1',
 			user = 'root',
-			passws = '',
-			cursorclass = MySQLdb.cursor.DictCursor,
-			charset = 'utf-8',
+			passwd = 'yxq860630',
+			cursorclass = MySQLdb.cursors.DictCursor,
+			charset = 'utf8',
 			use_unicode = True
 			)
 			
+	# def item_type(self, item):
+	# 	return type(item).__name__.replace('_Item','') # Proj_Item -->Proj
+		
 	def process_item(self, item, spider):
+		item_type_info = type(item).__name__
+		# what = self.item_type(item)
+		print "in sql pipeline with type : %s \n" %item_type_info
+		if item_type_info == "Proj_Item":
+			print "find one proj item"
+		query = self.dbpool.runInteraction(self.conditional_insert, item)
+		query.addErrback(self.handle_error)
+		print "finish processing one item in sql pipeline."
+		return item
+	
+	def conditional_insert(self, tx, item):
+		item_type_info = type(item).__name__
+		# what = self.item_type(item)
+		print "in sql pipeline with type : %s \n" %item_type_info
+		
+        # insert proj owner item
 		"""
-		create record if does not exist. all this block run on it
-		own thread
-			supporter_name = Field()
-	supporter_url = Field()
-	supporter_icon = Field()
-	supporter_support_time = Field()
-	supporter_support_amount = Field()
-	supporter_total_support_proj = Field()
+        if item_type_info != "Proj_Item":
+			print "item match in sql pipeline with item : %s \n" %item['proj_id']
+			tx.execute("SELECT * from demohour_project where proj_id = %s\n", (item['proj_id'],))
+			result = tx.fetch()
+			print "finish executing select."
+			if result:
+				log.msg("Item already stored in db: %s" %item, level = log.DEBUG)
+			else:
+				print "ready to insert.\n"
+				tx.execute(\
+					"INSERT INTO demohour_project(proj_id, proj_funding_target, proj_url, proj_name, proj_current_funding_amount, proj_current_funding_percentage, proj_status, proj_leftover_time, proj_left_over_time_unit, proj_surfer_count, proj_topic_count, proj_supporter_count, proj_owner_name) "
+					"values (%s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s)",
+					(
+					item['proj_id'],
+					item['proj_funding_target'],
+					item['proj_url'],
+					item['proj_name'],
+					item['proj_current_funding_amount'],
+					item['proj_current_funding_percentage'],
+					item['proj_status'],
+					item['proj_leftover_time'],
+					item['proj_leftover_time_unit'],
+					item['proj_surfer_count'],
+					item['proj_topic_count'],
+					item['proj_supporter_count'],
+					item['proj_owner_name']
+					)
+					)
+				tx.commit()
+				log.msg("Item stored in db: %s" %item, level = log.DEBUG)
 		"""
-		tx.execute("SELECT * from backers where backer_name = %s and back_support_time = %s", (item['support_name'],item['supporter-support_time'],))
-		result = tx.fetch()
-		if result:
-			log.msg("Item already stored in db: %s" %item, level = log.DEBUG)
-		else:
-			tx.execute(\
-				"Insert into supporters(supporter_name, supporter_url, supporter_icon, supporter_support_time, supporter_support_amount, supporter_total_support_proj) "
-				"values (%s, %s, %d, %s, %d, %d)",
-				(
-				item['supporter_name'][0],
-				item['supporter_url'][0],
-				item['supporter_icon'][0],
-				item['supporter_support_time'][0],
-				item['supporter_total_support_proj'][0]
-				)
-				)
-			log.msg("Item stored in db: %s" %item, level = log.DEBUG)
-			
+		
 	def handle_error(self, e):
+		print "SQL pipeline error is %s" %e
 		log.err(e)
 		
 import time
