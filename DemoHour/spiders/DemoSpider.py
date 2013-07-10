@@ -17,7 +17,8 @@ class DemoSpider(CrawlSpider):
 	domain = ['demohour.com']
 	start_urls = [
 	'http://www.demohour.com/projects/318807',
-	# 'http://www.demohour.com/projects/discover/5_0_0_6?page=1',
+	'http://www.demohour.com/projects/319076',
+	# 'http://www.demohour.com/projects/discover/5_0_0_6?page=1', 319076
 	"""
 	'http://www.demohour.com/projects/318262',
 	'http://www.demohour.com/projects/318807',
@@ -48,8 +49,8 @@ class DemoSpider(CrawlSpider):
 	#success_proj_extractor = SgmlLinkExtractor(allow=('/projects/318262$',),deny=('page=1$',) )
 	#backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318262/backers?',),deny=('page=1$',),  )
 		
-	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/318807',),deny=('page=1$',) )
-	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/318807/backers?',),deny=('page=1$',),  )
+	proj_table_extractor = SgmlLinkExtractor(allow=('/projects/319076',),deny=('page=1$',) )
+	backers_table_extractor = SgmlLinkExtractor(allow=('/projects/319076/backers?',),deny=('page=1$',),  )
 	# users_table_extractor = SgmlLinkExtractor(allow=('/[\d7]+$',),deny=('page=1$',),  )
 	# '/projects/309168$', '/projects/320084$', '/projects/319703$'  deny=('page=1$',)
 	# proj_sidebar_funding = SgmlLinkExtractor(allow=('/projects/318262/posts$',), )
@@ -171,12 +172,14 @@ class DemoSpider(CrawlSpider):
 			# this is how many people support this proj
 			proj_supporter_count = p.select(".//div[@class='sidebar-number-days-l']/b/b/text()").extract()
 			print "support num:", proj_supporter_count
-			proj['proj_supporter_count'] = proj_supporter_count
+			if len(proj_supporter_count) == 1:
+				proj['proj_supporter_count'] = proj_supporter_count[0]
 				
 			# this is how many people view this proj
 			proj_surfer_count = p.select(".//div[@class='sidebar-number-days-m']/b/b/text()").extract()
 			print "people view ", proj_surfer_count
-			proj['proj_surfer_count'] = proj_surfer_count
+			if len(proj_surfer_count) == 1:
+				proj['proj_surfer_count'] = proj_surfer_count[0]
 			
 			# get topic of the proj
 			topic_count = hxs.select("//ul[@class='ui-tab-menu']/li/a/span[@id='posts_count']/text()").extract()
@@ -184,7 +187,7 @@ class DemoSpider(CrawlSpider):
 				self.log("Parse topic count error. %s" %response.url)
 				print "Parse topic count error. %s" %response.url
 			else:
-				proj['proj_topic_count'] = topic_count
+				proj['proj_topic_count'] = topic_count[0]
 				
 			# get the proj_status
 			proj_status = p.select(".//div[@class='sidebar-number-days-r']/span/text()").extract()
@@ -196,15 +199,16 @@ class DemoSpider(CrawlSpider):
 				
 			# get how many days left
 			proj_leftover_time = p.select(".//div[@class='sidebar-number-days-r']/b/b/text()").extract()
-			print "days left ", proj_leftover_time		
-			proj['proj_leftover_time'] = proj_leftover_time	
+			print "days left ", proj_leftover_time
+			if len(proj_leftover_time) == 1:
+				proj['proj_leftover_time'] = proj_leftover_time[0]	
 
 			# get the unit of left_over
 			proj_leftover_time_units = p.select(".//div[@class='sidebar-number-days-r']/b/text()").extract()
 			if len(proj_leftover_time_units) == 1:
-				proj['proj_left_over_time_unit'] = 0  # proj complete
+				proj['proj_leftover_time_unit'] = 0  # proj complete
 			elif len(proj_leftover_time_units) == 2:
-				proj['proj_left_over_time_unit'] = proj_leftover_time_units[1]
+				proj['proj_leftover_time_unit'] = proj_leftover_time_units[1]
 			else:
 				self.log("Can not parse proj left over time at url=%s" %response.url)
 				print "Parse proj left over time error. %s" %response.url
@@ -216,7 +220,8 @@ class DemoSpider(CrawlSpider):
 		else:
 			p = projs_owner[0]
 			proj_owner_owner_name = p.select(".//a[@class='project-by-img-r-author']/text()").extract()
-			proj['proj_owner_name'] = proj_owner_owner_name
+			if len(proj_owner_owner_name) == 1:
+				proj['proj_owner_name'] = proj_owner_owner_name[0]
 			
 		# get proj_location --> this wil be extracted in another table
 		# reason is this information may not be available at back page, only exist in main page
@@ -272,6 +277,7 @@ class DemoSpider(CrawlSpider):
 			if len(proj_by_post_support_list) >= 1:
 				proj_owner_support_proj_count = proj_by_post_support_list[0]
 				proj_owner['proj_owner_own_proj_count'] = proj_by_post_support_list[0]
+				proj_owner['proj_owner_support_proj_count'] = 0; # set default value
 			if len(proj_by_post_support_list) >= 2:
 				proj_owner_own_proj_count = proj_by_post_support_list[1]
 				proj_owner['proj_owner_support_proj_count'] = proj_by_post_support_list[1]

@@ -13,7 +13,7 @@ from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
 class Proj_Item(Item):
 	###################################################################################################################################
     # section of proj table
-	# (proj_url, proj_id(PK), proj_name, proj_funding_target, proj_current_funding_amount, proj_current_funding_percentage,proj_status, proj_left_over_time, proj_left_over_time_unit(day, or hour, or empty if proj expire),
+	# (proj_url, proj_id(PK), proj_name, proj_funding_target, proj_current_funding_amount, proj_current_funding_percentage,proj_status, proj_left_over_time, proj_leftover_time_unit(day, or hour, or empty if proj expire),
 	#   proj_owner_name, proj_location,proj_supporter_count, proj_surfer_count, proj_topic_count)
 	###################################################################################################################################
 	proj_url = Field()      	# proj url, www.demohour.com/projects/318262
@@ -24,7 +24,7 @@ class Proj_Item(Item):
 	proj_current_funding_percentage = Field()
 	proj_status = Field()
 	proj_leftover_time = Field()
-	proj_left_over_time_unit = Field()
+	proj_leftover_time_unit = Field()
 	proj_owner_name = Field()
 	# proj_location = Field()	
 	proj_supporter_count = Field()

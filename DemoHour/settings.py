@@ -19,6 +19,7 @@ DOWNLOAD_DELAY = 0.25
 #USER_AGENT = 'DemoHour (+http://www.yourdomain.com)'
 ITEM_PIPELINES = [
 	'DemoHour.pipelines.DemohourPipeline',
+	'DemoHour.pipelines.DefaultValuesPipeline',
 	'DemoHour.pipelines.DuplicatesPipeline',
 	'DemoHour.pipelines.MultiCSVItemPipeline',
     # 'DemoHour.pipelines.DuplicatesPipeline',

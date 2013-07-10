@@ -18,7 +18,17 @@ class DemohourPipeline(object):
     def process_item(self, item, spider):
         return item
 
-
+class DefaultValuesPipeline(object):
+	def process_item(self,item, spider):
+		item_type = type(item).__name__
+		
+		if item_type == "Proj_Item":
+			item.setdefault('proj_leftover_time_unit', 'unset')
+			
+			
+		return item
+		
+		
 class DuplicatesPipeline(object):	
     def __init__(self):
         self.Proj_ids_seen_for_Proj_table = set()
@@ -68,54 +78,48 @@ class MySQLStorePipeline(object):
 	# 	return type(item).__name__.replace('_Item','') # Proj_Item -->Proj
 		
 	def process_item(self, item, spider):
-		item_type_info = type(item).__name__
-		# what = self.item_type(item)
-		print "in sql pipeline with type : %s \n" %item_type_info
-		if item_type_info == "Proj_Item":
+		item_type = type(item).__name__
+		if item_type == "Proj_Item":
 			print "find one proj item"
 		query = self.dbpool.runInteraction(self.conditional_insert, item)
 		query.addErrback(self.handle_error)
-		print "finish processing one item in sql pipeline."
 		return item
 	
 	def conditional_insert(self, tx, item):
-		item_type_info = type(item).__name__
+		what = type(item).__name__
 		# what = self.item_type(item)
-		print "in sql pipeline with type : %s \n" %item_type_info
-		
+		print "in sql pipeline with type : %s \n" %what
         # insert proj owner item
-		"""
-        if item_type_info != "Proj_Item":
+        	if what == "Proj_Item":
 			print "item match in sql pipeline with item : %s \n" %item['proj_id']
 			tx.execute("SELECT * from demohour_project where proj_id = %s\n", (item['proj_id'],))
-			result = tx.fetch()
+			result = tx.fetchone()
 			print "finish executing select."
 			if result:
 				log.msg("Item already stored in db: %s" %item, level = log.DEBUG)
 			else:
 				print "ready to insert.\n"
 				tx.execute(\
-					"INSERT INTO demohour_project(proj_id, proj_funding_target, proj_url, proj_name, proj_current_funding_amount, proj_current_funding_percentage, proj_status, proj_leftover_time, proj_left_over_time_unit, proj_surfer_count, proj_topic_count, proj_supporter_count, proj_owner_name) "
-					"values (%s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s)",
-					(
-					item['proj_id'],
-					item['proj_funding_target'],
-					item['proj_url'],
-					item['proj_name'],
-					item['proj_current_funding_amount'],
-					item['proj_current_funding_percentage'],
-					item['proj_status'],
-					item['proj_leftover_time'],
-					item['proj_leftover_time_unit'],
-					item['proj_surfer_count'],
-					item['proj_topic_count'],
-					item['proj_supporter_count'],
-					item['proj_owner_name']
-					)
-					)
-				tx.commit()
-				log.msg("Item stored in db: %s" %item, level = log.DEBUG)
-		"""
+						"INSERT INTO demohour_project(proj_id, proj_funding_target, proj_url, proj_name, proj_current_funding_amount, proj_current_funding_percentage, proj_status, proj_leftover_time, proj_left_over_time_unit, proj_surfer_count, proj_topic_count, proj_supporter_count, proj_owner_name) "
+						"values (%s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s)",
+						(
+						item['proj_id'],
+						item['proj_funding_target'],
+						item['proj_url'],
+						item['proj_name'],
+						item['proj_current_funding_amount'],
+						item['proj_current_funding_percentage'],
+						item['proj_status'],
+						item['proj_leftover_time'],
+						item['proj_leftover_time_unit'],
+						item['proj_surfer_count'],
+						item['proj_topic_count'],
+						item['proj_supporter_count'],
+						item['proj_owner_name']
+						)
+						)
+					#tx.commit()
+				log.msg("Item stored in db: %s" %item, level = log.DEBUG)				
 		
 	def handle_error(self, e):
 		print "SQL pipeline error is %s" %e
