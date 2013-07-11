@@ -405,11 +405,14 @@ class DemoSpider(CrawlSpider):
 			incentive_reward_shipping_time_and_method = p.select(".//li[@class='returns-contents-time']/p/text()").extract()
 			if len(incentive_reward_shipping_time_and_method) == 1:
 				shipping_time = reward.clean_reward_shipping_time(incentive_reward_shipping_time_and_method[0])
-				reward['incentive_reward_shipping_time'] = shipping_time
+				if len(shipping_time) >= 1:
+					reward['incentive_reward_shipping_time'] = shipping_time[0]
 			elif len(incentive_reward_shipping_time_and_method) == 2:
 				shipping_method = incentive_reward_shipping_time_and_method[0]
 				reward['incentive_reward_shipping_method'] = shipping_method
-				reward['incentive_reward_shipping_time'] = reward.clean_reward_shipping_time(incentive_reward_shipping_time_and_method[1])
+				time = reward.clean_reward_shipping_time(incentive_reward_shipping_time_and_method[1])
+				if len(time) >= 1:
+					reward['incentive_reward_shipping_time'] =  time[0]
 			
 			rewards.append(reward)
 			
@@ -460,14 +463,16 @@ class DemoSpider(CrawlSpider):
 			#print "supporter_total_support_proj ", supporter_total_support_proj
 			#print "supporter_support_time ", supporter_support_time
 			#print "supporter total support", supporter_support_amount
-			item['supporter_name'] = supporter_name
+			if len(supporter_name) == 1:
+				item['supporter_name'] = supporter_name[0]
 			if len(supporter_id) == 1:
 				item['supporter_id'] = item.clean_supporter_id(supporter_id[0])
 			if len(supporter_icon) == 1:
 				item['supporter_icon'] = item.clean_supporter_icon(supporter_icon[0])
 			if len(supporter_support_time) == 1:
 				item['supporter_support_time']= item.clean_supporter_support_time(supporter_support_time[0])
-			item['supporter_support_amount'] = supporter_support_amount
+			if len(supporter_support_amount) == 1:
+				item['supporter_support_amount'] = supporter_support_amount[0]
 			if len(supporter_total_support_proj) == 1:
 				item['supporter_total_support_proj'] = item.clean_supporter_total_support_proj(supporter_total_support_proj[0])
 			item['supporter_proj_id'] = PROJ_ID

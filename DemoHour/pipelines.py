@@ -24,20 +24,27 @@ class DefaultValuesPipeline(object):
 		
 		if item_type == "Proj_Item":
 			item.setdefault('proj_leftover_time_unit', 'unset')
+			
 		elif item_type == "Proj_Owner_Item":
 			item.setdefault('proj_owner_star_level', 0)
+			
 		elif item_type == "Proj_Topic":
 		# topic_proj_owner_name,topic_proj_category,topic_proj_id,topic_down_count,topic_proj_location,topic_total_buzz_count,topic_announcement_count,topic_question_count,topic_up_count
 			item.setdefault('topic_up_count', 0)
 			item.setdefault('topic_down_count', 0)
 			item.setdefault('topic_proj_category', 'unset')
 			item.setdefault('topic_proj_location', 'unset')
+			
 		elif item_type == "Proj_Incentive_Options_Item":
 		# incentive_expect_support_amount,incentive_proj_id,incentive_reward_shipping_time,incentive_total_allowable_supporter_count,incentive_reward_shipping_method,incentive_description,incentive_current_supporter_count
-			item.setdefault('incentive_total_allowable_supporter_count', 'unlimited')
+			item.setdefault('incentive_total_allowable_supporter_count', None)
 			item.setdefault('incentive_current_supporter_count', 0)
 			item.setdefault('incentive_reward_shipping_time', 'N/A')
 			item.setdefault('incentive_reward_shipping_method', 'N/A')
+			
+		elif item_type == "Proj_Supporter":
+		# supporter_name,supporter_support_time,supporter_support_amount,supporter_proj_id,supporter_icon,supporter_total_support_proj,supporter_id
+			item.setdefault('supporter_icon', 0)
 			
 		return item
 		
@@ -103,7 +110,28 @@ class MySQLStorePipeline(object):
 		# what = self.item_type(item)
 		print "in sql pipeline with type : %s \n" %what
         # insert proj owner item
-        	if what == "Proj_Item":
+		if what == "Proj_Supporter":
+			# find a way to dedup the supporter
+			result = False
+			print "Proj supporter content is: %s" %item
+			if result:
+				log.msg("Item proj_supporter in the db: %s", item)
+			else:
+				tx.execute(\
+						"INSERT INTO demohour_supporter(supporter_name,supporter_support_time,supporter_support_amount,supporter_proj_id,supporter_icon,supporter_total_support_proj,supporter_id) "
+						"values (%s, %s, %s, %s, %s, %s, %s)",
+						(
+						item['supporter_name'],
+						item['supporter_support_time'],
+						item['supporter_support_amount'],
+						item['supporter_proj_id'],
+						item['supporter_icon'],
+						item['supporter_total_support_proj'],
+						item['supporter_id']
+						)
+						)
+						
+        	elif what == "Proj_Item":
 			tx.execute("SELECT * from demohour_project where proj_id = %s\n", (item['proj_id'],))
 			result = tx.fetchone()
 			if result:
@@ -172,19 +200,24 @@ class MySQLStorePipeline(object):
 						)
 		elif what == "Proj_Incentive_Options_Item":
 			# TODO: find a proper keys to determine duplication.
-			tx.execute(\
-						"INSERT INTO demohour_proj_incentive_options(incentive_expect_support_amount,incentive_proj_id,incentive_reward_shipping_time,incentive_total_allowable_supporter_count,incentive_reward_shipping_method,incentive_description,incentive_current_supporter_count) "
-						"values (%s, %s, %s, %s, %s, %s,%s)",
-						(
-						item['incentive_expect_support_amount'],
-						item['incentive_proj_id'],
-						item['incentive_reward_shipping_time'],
-						item['incentive_total_allowable_supporter_count'],
-						item['incentive_reward_shipping_method'],
-						item['incentive_description'],
-						item['incentive_current_supporter_count']
-						)
-						)			
+			tx.execute("SELECT * FROM demohour_proj_incentive_options WHERE incentive_proj_id = %s and incentive_expect_support_amount = %s", (item['incentive_proj_id'], item['incentive_expect_support_amount'])) 
+			result = tx.fetchone()
+			if result:
+				log.msg("Item of Proj_Incentive_Options_Item already stored in db: %s" %item, level = log.DEBUG)
+			else:
+				tx.execute(\
+							"INSERT INTO demohour_proj_incentive_options(incentive_expect_support_amount,incentive_proj_id,incentive_reward_shipping_time,incentive_total_allowable_supporter_count,incentive_reward_shipping_method,incentive_description,incentive_current_supporter_count) "
+							"values (%s, %s, %s, %s, %s, %s, %s)",
+							(
+							item['incentive_expect_support_amount'],
+							item['incentive_proj_id'],
+							item['incentive_reward_shipping_time'],
+							item['incentive_total_allowable_supporter_count'],
+							item['incentive_reward_shipping_method'],
+							item['incentive_description'],
+							item['incentive_current_supporter_count']
+							)
+							)			
 	def handle_error(self, e):
 		print "SQL pipeline error is %s" %e
 		log.err(e)
