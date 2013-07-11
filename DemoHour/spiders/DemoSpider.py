@@ -257,11 +257,13 @@ class DemoSpider(CrawlSpider):
 			
 			proj_owner_owner_name = p.select(".//a[@class='project-by-img-r-author']/text()").extract()
 			print "proj name: ", proj_owner_owner_name
-			proj_owner['proj_owner_owner_name'] = proj_owner_owner_name
+			if len(proj_owner_owner_name) == 1:
+				proj_owner['proj_owner_owner_name'] = proj_owner_owner_name[0]
 			
 			proj_owner_star_level = p.select(".//div[@class='project-by-img-r']/div[@class='icon-sun-m']/a/text()").extract()
 			print "proj proj_owner_star_level: ", proj_owner_star_level
-			proj_owner['proj_owner_star_level'] = proj_owner_star_level
+			if len(proj_owner_star_level) == 1:
+				proj_owner['proj_owner_star_level'] = proj_owner_star_level[0]
 			
 			proj_owner_last_log_in_time = p.select(".//div[@class='project-by-last-time']/text()").extract()
 			print "proj last update time,", proj_owner_last_log_in_time
@@ -276,11 +278,10 @@ class DemoSpider(CrawlSpider):
 			proj_owner_own_proj_count = 0
 			if len(proj_by_post_support_list) >= 1:
 				proj_owner_support_proj_count = proj_by_post_support_list[0]
-				proj_owner['proj_owner_own_proj_count'] = proj_by_post_support_list[0]
-				proj_owner['proj_owner_support_proj_count'] = 0; # set default value
+				proj_owner['proj_owner_support_proj_count'] = proj_by_post_support_list[0]
 			if len(proj_by_post_support_list) >= 2:
 				proj_owner_own_proj_count = proj_by_post_support_list[1]
-				proj_owner['proj_owner_support_proj_count'] = proj_by_post_support_list[1]
+				proj_owner['proj_owner_own_proj_count'] = proj_by_post_support_list[1]
 			print "proj owner supports:", proj_owner_support_proj_count
 			print "proj owner owns:", proj_owner_own_proj_count
 

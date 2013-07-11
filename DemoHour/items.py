@@ -137,7 +137,7 @@ class Proj_Incentive_Options_Item(Item):
 	#   incentive_description, incentive_reward_shipping_method, incentive_reward_shipping_time)
 	###################################################################################################################################	
 	incentive_proj_id = Field()
-	incentive_id = Field()
+	# incentive_id = Field()
 	incentive_expect_support_amount = Field()
 	incentive_current_supporter_count = Field()
 	incentive_total_allowable_supporter_count = Field() # optional

@@ -24,7 +24,20 @@ class DefaultValuesPipeline(object):
 		
 		if item_type == "Proj_Item":
 			item.setdefault('proj_leftover_time_unit', 'unset')
-			
+		elif item_type == "Proj_Owner_Item":
+			item.setdefault('proj_owner_star_level', 0)
+		elif item_type == "Proj_Topic":
+		# topic_proj_owner_name,topic_proj_category,topic_proj_id,topic_down_count,topic_proj_location,topic_total_buzz_count,topic_announcement_count,topic_question_count,topic_up_count
+			item.setdefault('topic_up_count', 0)
+			item.setdefault('topic_down_count', 0)
+			item.setdefault('topic_proj_category', 'unset')
+			item.setdefault('topic_proj_location', 'unset')
+		elif item_type == "Proj_Incentive_Options_Item":
+		# incentive_expect_support_amount,incentive_proj_id,incentive_reward_shipping_time,incentive_total_allowable_supporter_count,incentive_reward_shipping_method,incentive_description,incentive_current_supporter_count
+			item.setdefault('incentive_total_allowable_supporter_count', 'unlimited')
+			item.setdefault('incentive_current_supporter_count', 0)
+			item.setdefault('incentive_reward_shipping_time', 'N/A')
+			item.setdefault('incentive_reward_shipping_method', 'N/A')
 			
 		return item
 		
@@ -91,14 +104,11 @@ class MySQLStorePipeline(object):
 		print "in sql pipeline with type : %s \n" %what
         # insert proj owner item
         	if what == "Proj_Item":
-			print "item match in sql pipeline with item : %s \n" %item['proj_id']
 			tx.execute("SELECT * from demohour_project where proj_id = %s\n", (item['proj_id'],))
 			result = tx.fetchone()
-			print "finish executing select."
 			if result:
 				log.msg("Item already stored in db: %s" %item, level = log.DEBUG)
 			else:
-				print "ready to insert.\n"
 				tx.execute(\
 						"INSERT INTO demohour_project(proj_id, proj_funding_target, proj_url, proj_name, proj_current_funding_amount, proj_current_funding_percentage, proj_status, proj_leftover_time, proj_left_over_time_unit, proj_surfer_count, proj_topic_count, proj_supporter_count, proj_owner_name) "
 						"values (%s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s)",
@@ -119,8 +129,62 @@ class MySQLStorePipeline(object):
 						)
 						)
 					#tx.commit()
-				log.msg("Item stored in db: %s" %item, level = log.DEBUG)				
-		
+				log.msg("Item stored in db: %s" %item, level = log.DEBUG)
+		elif what == "Proj_Owner_Item":
+			tx.execute("SELECT * FROM demohour_project_owner WHERE proj_owner_owner_id = %s and proj_owner_proj_id = %s\n", (item['proj_owner_owner_id'],item['proj_owner_proj_id']))
+			result = tx.fetchone()
+			if result:
+				log.msg("Item of proj_onwe_item already stored in db: %s" %item, level = log.DEBUG)
+			else:
+				tx.execute(\
+						"INSERT INTO demohour_project_owner(proj_owner_owner_name,proj_owner_owner_id,proj_owner_last_log_in_time,proj_owner_own_proj_count,proj_owner_support_proj_count,proj_owner_proj_id,proj_owner_star_level) "
+						"values (%s, %s, %s, %s, %s, %s,%s)",
+						(
+						item['proj_owner_owner_name'],
+						item['proj_owner_owner_id'],
+						item['proj_owner_last_log_in_time'],
+						item['proj_owner_own_proj_count'],
+						item['proj_owner_support_proj_count'],
+						item['proj_owner_proj_id'],
+						item['proj_owner_star_level']
+						)
+						)
+		elif what == "Proj_Topic":
+			tx.execute("SELECT * FROM demohour_project_topic WHERE topic_proj_id = %s\n", (item['topic_proj_id'],))
+			result = tx.fetchone()
+			if result:
+				log.msg("Item of proj_topic_item already stored in db: %s" %item, level = log.DEBUG)
+			else:
+				tx.execute(\
+						"INSERT INTO demohour_project_topic(topic_proj_owner_name,topic_proj_category,topic_proj_id,topic_down_count,topic_proj_location,topic_total_buzz_count,topic_announcement_count,topic_question_count,topic_up_count) "
+						"values (%s, %s, %s, %s, %s, %s,%s, %s, %s)",
+						(
+						item['topic_proj_owner_name'],
+						item['topic_proj_category'],
+						item['topic_proj_id'],
+						item['topic_down_count'],
+						item['topic_proj_location'],
+						item['topic_total_buzz_count'],
+						item['topic_announcement_count'],
+						item['topic_question_count'],
+						item['topic_up_count']
+						)
+						)
+		elif what == "Proj_Incentive_Options_Item":
+			# TODO: find a proper keys to determine duplication.
+			tx.execute(\
+						"INSERT INTO demohour_proj_incentive_options(incentive_expect_support_amount,incentive_proj_id,incentive_reward_shipping_time,incentive_total_allowable_supporter_count,incentive_reward_shipping_method,incentive_description,incentive_current_supporter_count) "
+						"values (%s, %s, %s, %s, %s, %s,%s)",
+						(
+						item['incentive_expect_support_amount'],
+						item['incentive_proj_id'],
+						item['incentive_reward_shipping_time'],
+						item['incentive_total_allowable_supporter_count'],
+						item['incentive_reward_shipping_method'],
+						item['incentive_description'],
+						item['incentive_current_supporter_count']
+						)
+						)			
 	def handle_error(self, e):
 		print "SQL pipeline error is %s" %e
 		log.err(e)
